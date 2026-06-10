@@ -327,7 +327,6 @@
             loadRebDirectiveLocal();
         }
 
-        // РОЗУМНА ОФЛАЙН-ЧЕРГА З ОБМЕЖЕННЯМ СПРОБ (ЗАБЕЗПЕЧУЄ СТАБІЛЬНІСТЬ ПЛАНШЕТА)
         setInterval(async () => {
             if (!navigator.onLine) return;
             let queue = JSON.parse(localStorage.getItem("offline_reports_queue") || "[]");
@@ -346,7 +345,7 @@
                 report.retryCount++;
                 if (report.retryCount >= 3) {
                     queue.shift();
-                    queue.push(report); // Ротуємо збійний запис в кінець, щоб не блокувати наступні
+                    queue.push(report); 
                     localStorage.setItem("offline_reports_queue", JSON.stringify(queue));
                     console.log("⚠️ Запис ротовано в кінець через 3 невдалі спроби.");
                 }
@@ -428,7 +427,6 @@
             const configResp = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getFormConfig" }) });
             globalConfig = await configResp.json();
             if(!globalConfig.crews) globalConfig.crews = [];
-            // НАДІЙНИЙ ЛОКАЛЬНИЙ КЕШ (ВИДАЛИЛИ СТАРИЙ ФАЛБЕК ХАРДКОД)
             localStorage.setItem("cached_global_config", JSON.stringify(globalConfig));
         }
 
@@ -436,10 +434,11 @@
             const cached = localStorage.getItem("cached_global_config");
             if (cached) {
                 globalConfig = JSON.parse(cached);
-                console.log("⚙️ Стягнуто актуальну конфігурацію адміна з локального кешу пристрою.");
+                console.log("⚙️ Стягнуто актуальну конфіграцію з локального кешу.");
             }
         }
 
+        // ВИПРАВЛЕНО: СИНТАКСИС ЗАПОВНЕННЯ ФОРМИ (ДОДАНО СТРУКТУРУ OPTION)
         function buildUserForm() {
             document.getElementById("user-crew").innerHTML = (globalConfig.crews?.length > 0 ? globalConfig.crews : ["Default Crew"]).map(c => `<option value="${c}">${c}</option>`).join('');
             document.getElementById("user-target").innerHTML = (globalConfig.objects?.length > 0 ? globalConfig.objects : ["Цілі відсутні"]).map(t => `<option value="${t}">${t}</option>`).join('');
@@ -557,7 +556,6 @@
 
         let globalCrewAggregations = {}; 
 
-        // ОПТИМІЗАЦІЯ ОБЧИСЛЕНЬ ТА СТАТИСТИКИ (ПЕРЕХІД НА DOM BUFFER ТА СКРИТТЯ ПУСТИХ БЛОКІВ)
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             
@@ -635,12 +633,11 @@
             cachedTotalsText += filterStartDateTime ? `Період: з ${document.getElementById("filter-start").value.replace('T',' ')} по ${document.getElementById("filter-end").value.replace('T',' ')}\n` : "Період: За весь час\n";
             cachedTotalsText += "--------------------------------------\n";
 
-            // ВИКОРИСТАННЯ HTML BUFFER (ЗАПОБІГАЄ REFLOW БРАУЗЕРА)
             let htmlBuffer = "";
 
             Object.keys(crewStats).forEach(crew => {
                 let hasCrewData = Object.values(crewStats[crew]).some(val => val > 0);
-                if (!hasCrewData) return; // Скриття пустих блоків (вимоги аудиту)
+                if (!hasCrewData) return; 
 
                 cachedTotalsText += `⚔️ Екіпаж: "${crew}"\n`;
 
@@ -679,7 +676,6 @@
                 `;
             });
 
-            // ОДНОРАЗОВИЙ МОНТАЖ В DOM ИЗ БУФЕРА
             wrapper.innerHTML = htmlBuffer || "<div class='col-span-full text-center text-zinc-600 py-4 font-sans text-3xs'>Не знайдено бойових рапортів за вказаний період.</div>";
 
             document.getElementById("reb-analytics-list").innerHTML = activeReasons.map(r => `
@@ -891,7 +887,6 @@
             }
         }
 
-        // ВИПРАВЛЕНО CRASH-ПОМИЛКУ В MANAGEUSER (ОГОЛОШЕНО ОБ'ЄКТ DATA)
         async function manageUser(userId, subAction) {
             const data = { action: "manageUser", subAction: subAction, userId: userId, adminName: currentUserLog };
             await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(data) });
