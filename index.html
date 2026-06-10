@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тактична Система Обліку БПЛА</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.41.1/html2canvas.min.js"></script>
+    <style>
+        body { background-color: #09090b; color: #f4f4f5; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, sans-serif; }
+        .accordion-content { transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), padding 0.3s ease; max-height: 0; overflow: hidden; }
+        .accordion-content.open { max-height: 2500px; padding-top: 1.25rem; padding-bottom: 1.25rem; }
+        .cmd-panel { background-color: #121214; border: 1px solid #27272a; }
+        .cmd-input { background-color: #09090b; border: 1px solid #27272a; font-family: ui-monospace, sans-serif; }
+        .cmd-input:focus { border-color: #22c55e; outline: none; }
+        @keyframes pulse-red { 0%, 100% { border-color: #ef4444; background-color: rgba(153, 27, 27, 0.1); } 50% { border-color: #7f1d1d; background-color: rgba(153, 27, 27, 0.25); } }
+        .reb-alert-panel { animation: pulse-red 3s infinite; }
+        ::-webkit-scrollbar { width: 4px; height: 4px; }
+        ::-webkit-scrollbar-track { background: #09090b; }
+        ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
+        ::-webkit-scrollbar-thumb:hover { background: #22c55e; }
+    </style>
+</head>
+<body class="p-4 flex flex-col items-center justify-center min-h-screen">
+
+    <div id="auth-box" class="w-full max-w-sm bg-zinc-900 p-6 rounded-lg shadow-lg border border-zinc-800">
+        <h2 id="auth-title" class="text-xl font-bold mb-4 text-center text-white">Вхід в систему</h2>
+        
+        <input type="text" id="username" placeholder="Логін" class="w-full p-2 mb-3 bg-zinc-800 border border-zinc-700 rounded text-white focus:outline-none focus:border-green-500">
+        <input type="password" id="password" placeholder="Пароль" class="w-full p-2 mb-4 bg-zinc-800 border border-zinc-700 rounded text-white focus:outline-none focus:border-green-500">
+        
+        <button onclick="handleSubmit()" id="main-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold p-2 rounded transition cursor-pointer">Увійти</button>
+        
+        <p class="text-sm text-center mt-4 text-zinc-400">
+            <span id="switch-text">Немає акаунту?</span> 
+            <a href="#" onclick="toggleAuthMode(); return false;" id="switch-link" class="text-green-500 underline">Зареєструватися</a>
+        </p>
+    </div>
+
+    <div id="user-box" class="w-full max-w-lg cmd-panel p-6 rounded-xl shadow-2xl mt-4 hidden">
+        <div class="flex justify-between items-center mb-4 border-b border-zinc-800 pb-3">
+            <div>
+                <h1 class="text-md font-bold text-zinc-100 tracking-wider uppercase">// ЖУРНАЛ ВИЛЬОТУ</h1>
+                <p id="user-efficiency-tag" class="text-3xs text-green-500 font-mono mt-0.5">Синхронізація зміни...</p>
+                <p id="offline-queue-tag" class="text-3xs text-amber-500 font-mono mt-0.5 hidden">⚠️ Автономний режим: в черзі 0 звітів</p>
+            </div>
+            <button onclick="location.reload()" class="bg-zinc-900 border border-zinc-800 hover:bg-red-900/40 text-zinc-400 hover:text-red-400 px-3 py-1 rounded text-2xs cursor-pointer transition">ВИХІД</button>
+        </div>
+
+        <div class="reb-alert-panel border rounded-lg p-3 mb-4 text-3xs font-mono text-zinc-300 leading-normal">
+            <span class="text-red-500 font-black block mb-1">📡 [УВАГА: СТАН РЕБ ТА СИТУАЦІЯ НА ЧАСТОТАХ]</span>
+            <div id="user-reb-text">Завантаження актуальних тактичних директив командування...</div>
+        </div>
+        
+        <div class="space-y-4 text-xs">
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-4xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Дата та час події:</label>
+                    <input type="datetime-local" id="user-datetime" class="w-full p-2 cmd-input rounded text-white text-3xs">
+                </div>
+                <div>
+                    <label class="block text-4xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Бортовий ID дрона:</label>
+                    <input type="text" id="user-drone-id" placeholder="Напр. ФОНД-01, САМОЗБІР-05" class="w-full p-2 cmd-input rounded text-white font-mono text-3xs placeholder-zinc-700">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-4xs font-bold text-zinc-400 uppercase tracking-widest mb-1">📋 Бойовий Екіпаж:</label>
+                    <select id="user-crew" class="w-full p-2 cmd-input rounded text-white text-3xs"></select>
+                </div>
+                <div>
+                    <label class="block text-4xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Засіб ураження:</label>
+                    <select id="user-weapon" class="w-full p-2 cmd-input rounded text-white text-3xs"></select>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-4xs font-bold text-amber-500 uppercase tracking-widest mb-1">Встановлений боєприпас (БК):</label>
+                <select id="user-ammo" class="w-full p-2 cmd-input border-amber-900/40 text-white text-3xs">
+                    <option value="Кумулятивний (КЗ-6)">Кумулятивний (КЗ-6)</option>
+                    <option value="Осколково-фугасний (ОФСП)">Осколково-фугасний (ОФСП)</option>
+                    <option value="Термобаричний (ТБГ)">Термобаричний (ТБГ)</option>
+                    <option value="Особливий збір / Інше">Особливий збір / Інше</option>
+                    <option value="Без БК (Розвідка/Тест)">Без БК (Розвідка/Тест)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-4xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Об'єкт ураження / Тип цілі:</label>
+                <select id="user-target" class="w-full p-2.5 cmd-input rounded text-white"></select>
+            </div>
+            <div>
+                <label class="block text-4xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Результат вильоту (Статус):</label>
+                <select id="user-status" onchange="checkStatusLogic()" class="w-full p-2.5 cmd-input rounded text-white"></select>
+            </div>
+            <div id="lost-reason-block" class="hidden bg-red-950/10 p-3 rounded border border-red-900/30">
+                <label class="block text-4xs font-bold text-red-400 uppercase tracking-widest mb-1">Причина втрати / падіння борта:</label>
+                <select id="user-lost-reason" class="w-full p-2.5 cmd-input rounded text-white"></select>
+            </div>
+            <div>
+                <label class="block text-4xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Швидкі тактичні теги:</label>
+                <div class="flex flex-wrap gap-1.5 mt-1">
+                    <button onclick="addCommentTag('Щільний РЕБ')" class="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-3xs rounded text-zinc-400 border border-zinc-800 cursor-pointer transition">📡 РЕБ</button>
+                    <button onclick="addCommentTag('Оптоволокно штатно')" class="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-3xs rounded text-zinc-400 border border-zinc-800 cursor-pointer transition">🧵 Оптоволокно</button>
+                    <button onclick="addCommentTag('Капонір/Укриття')" class="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-3xs rounded text-zinc-400 border border-zinc-800 cursor-pointer transition">🛡️ Сховище</button>
+                    <button onclick="addCommentTag('Повторний виліт')" class="px-2 py-1 bg-zinc-900 hover:bg-zinc-800 text-3xs rounded text-zinc-400 border border-zinc-800 cursor-pointer transition">🔄 Повтор</button>
+                </div>
+            </div>
+            <div>
+                <label class="block text-4xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Додаткові відомості:</label>
+                <textarea id="user-comment" rows="2" placeholder="Напрямок, координати або деталі..." class="w-full p-2.5 cmd-input rounded text-white"></textarea>
+            </div>
+            <button onclick="sendUserReport()" class="w-full bg-green-700 hover:bg-green-600 text-white font-bold p-3 rounded-lg text-xs tracking-wider uppercase transition cursor-pointer">Надіслати рапорт</button>
+        </div>
+    </div>
+
+    <div id="admin-box" class="w-full max-w-6xl cmd-panel p-6 rounded-xl shadow-2xl mt-4 hidden">
+        
+        <div class="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
+            <div class="flex items-center space-x-3">
+                <div class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></div>
+                <div>
+                    <h1 class="text-sm font-black tracking-widest text-zinc-100 uppercase">SYS_COMMAND_HUD [MAIN_ADMIN]</h1>
+                    <p class="text-4xs text-zinc-500 font-mono">РЕЖИМ: АКТИВНИЙ АУДИТ ПІДРОЗДІЛУ</p>
+                </div>
+            </div>
+            <div class="space-x-2 flex items-center">
+                <button onclick="openHistoryModal()" class="bg-zinc-800 border border-zinc-700 hover:bg-purple-900/40 hover:text-purple-400 text-zinc-200 px-4 py-2 rounded text-2xs font-bold tracking-wider uppercase cursor-pointer transition">📖 Журнал вильотів</button>
+                <button onclick="location.reload()" class="bg-zinc-900 border border-zinc-800 hover:bg-red-950/40 text-zinc-500 hover:text-red-400 px-3 py-2 rounded text-2xs cursor-pointer transition" title="Panic Button">&times; PANIC</button>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3 mb-4 font-mono">
+            <div class="bg-red-950/10 border border-red-900/30 rounded-xl p-3">
+                <h3 class="text-4xs font-black uppercase text-red-400 mb-2">// РЕДАКТОР СТАНУ РЕБ ТА ЧАСТОТ</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="admin-reb-input" placeholder="Введіть актуальні частоти або загрози..." class="flex-1 p-1.5 bg-zinc-950 border border-zinc-800 rounded text-xs text-zinc-200 focus:outline-none">
+                    <button onclick="updateRebDirective()" class="bg-red-900 hover:bg-red-800 text-white px-3 py-1 rounded text-3xs font-bold uppercase cursor-pointer">Оновити</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
+            <button onclick="toggleAccordion('acc-filter')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
+                <span>[+] УПРАВЛІННЯ ЧАСОВИМИ ПЕРІОДАМИ ТА ТАКТИЧНИМИ ЗВІТАМИ</span>
+                <span id="acc-filter-icon" class="text-zinc-600 font-mono text-xs">┼</span>
+            </button>
+            <div id="acc-filter" class="accordion-content px-4 text-2xs">
+                <div class="flex flex-wrap gap-4 items-end border-b border-zinc-900 pb-4 mb-4">
+                    <div>
+                        <label class="block text-4xs text-zinc-500 uppercase tracking-wider mb-1">Початок періоду:</label>
+                        <input type="datetime-local" id="filter-start" class="p-2 cmd-input rounded text-xs text-white">
+                    </div>
+                    <div>
+                        <label class="block text-4xs text-zinc-500 uppercase tracking-wider mb-1">Кінець періоду:</label>
+                        <input type="datetime-local" id="filter-end" class="p-2 cmd-input rounded text-xs text-white">
+                    </div>
+                    <button onclick="applyCustomFilter()" class="bg-blue-900/80 border border-blue-800 hover:bg-blue-800 text-white px-3 py-2 rounded font-bold text-xs cursor-pointer transition">Застосувати межі</button>
+                    <button onclick="setWednesdayFilter()" class="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-amber-500 px-3 py-2 rounded font-bold text-xs cursor-pointer transition">📅 Звітний тиждень (Ср 09:00)</button>
+                </div>
+                <div class="flex justify-between items-center flex-wrap gap-2">
+                    <div id="filter-status-text" class="text-green-500 font-mono">Відображається загальний масив даних.</div>
+                    <div class="space-x-1.5">
+                        <button onclick="generateTextReport()" class="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 px-3 py-1.5 rounded text-xs font-bold cursor-pointer transition">📋 Текстовий рапорт</button>
+                        <button onclick="generateGraphicReport()" class="bg-emerald-900/40 border border-emerald-800 text-emerald-400 hover:bg-emerald-800 hover:text-white px-3 py-1.5 rounded text-xs font-bold cursor-pointer transition">🖼️ Згенерувати інфографіку (Звіт-Картинка)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
+            <button onclick="toggleAccordion('acc-stats')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
+                <span>[─] СТАТИСТИКА ЗБИТТІВ ТА УРАЖЕНЬ У РОЗРІЗІ ЕКІПАЖІВ</span>
+                <span id="acc-stats-icon">─</span>
+            </button>
+            <div id="acc-stats" class="accordion-content px-4 open">
+                <div id="stats-crews-wrapper" class="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono"></div>
+            </div>
+        </div>
+
+        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
+            <button onclick="toggleAccordion('acc-analytics')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
+                <span>[+] АНАЛІТИЧНІ ЦЕНТРИ: РЕБ, ІНТЕНСИВНІСТЬ, СЕРІЇ БОРТІВ</span>
+                <span id="acc-analytics-icon">┼</span>
+            </button>
+            <div id="acc-analytics" class="accordion-content px-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
+                        <h3 class="text-4xs font-black uppercase tracking-widest text-red-500 mb-2.5 border-b border-zinc-800 pb-1.5">// АНАЛІЗ РЕБ ТА ВІДМОВ ТЕХНІКИ</h3>
+                        <div id="reb-analytics-list" class="space-y-1 text-3xs font-mono"></div>
+                    </div>
+
+                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
+                        <h3 class="text-4xs font-black uppercase tracking-widest text-amber-500 mb-2.5 border-b border-zinc-800 pb-1.5">// РЕЙТИНГ БОЙОВОЇ ЕФЕКТИВНОСТІ ОПЕРАТОРІВ</h3>
+                        <div id="operator-rating-list" class="space-y-1 text-3xs font-mono"></div>
+                    </div>
+
+                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
+                        <h3 class="text-4xs font-black uppercase tracking-widest text-purple-400 mb-2.5 border-b border-zinc-800 pb-1.5">// ГРАФІК ІНТЕНСИВНОСТІ ЗА ЧАСОМ ДОБИ</h3>
+                        <div id="time-intensity-list" class="space-y-1 text-3xs font-mono"></div>
+                    </div>
+
+                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800 md:col-span-3">
+                        <h3 class="text-4xs font-black uppercase tracking-widest text-green-400 mb-2.5 border-b border-zinc-800 pb-1.5">// РОЗУМНИЙ АУДИТ ПАРТІЙ ТА СЕРІЙ БОРТІВ (СТІЙКІСТЬ ДО РЕБ / ККД)</h3>
+                        <div id="drone-batch-analytics" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-3xs font-mono"></div>
+                    </div>
+
+                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800 md:col-span-3">
+                        <h3 class="text-4xs font-black uppercase tracking-widest text-orange-400 mb-2.5 border-b border-zinc-800 pb-1.5">// СУМАРНИЙ РОЗХІД БОЄПРИПАСІВ (ДЛЯ СЛУЖБИ ОЗБРОЄННЯ)</h3>
+                        <div id="ammo-consumption-list" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-3xs font-mono"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
+            <button onclick="toggleAccordion('acc-constructor')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
+                <span>[+] УПРАВЛІННЯ ДОВІДНИКАМИ, ЕКІПАЖАМИ ТА АКАУНТАМИ</span>
+                <span id="acc-constructor-icon" class="text-zinc-600 font-mono text-xs">┼</span>
+            </button>
+            <div id="acc-constructor" class="accordion-content px-4 text-2xs">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-4xs font-bold text-zinc-500 uppercase tracking-wider mb-2">// Конструктор довідників</h3>
+                            <select id="admin-opt-type" class="w-full p-2 mb-2 cmd-input rounded text-3xs text-white">
+                                <option value="crew">📋 Бойовий Екіпаж (Нова група)</option>
+                                <option value="status">🎯 Результат вильоту (Статус)</option>
+                                <option value="target">Об'єкт ураження (Тип цілі)</option>
+                                <option value="reason">Причина втрати борта</option>
+                                <option value="weapon">Засіб ураження (Чим уражали)</option>
+                            </select>
+                            <input type="text" id="admin-opt-value" placeholder="Введіть назву..." class="w-full p-2 mb-2 cmd-input rounded text-3xs text-white">
+                        </div>
+                        <button onclick="addDynamicOption()" class="w-full bg-purple-900 hover:bg-purple-800 text-white p-2 rounded text-3xs font-bold cursor-pointer transition">Додати пункт</button>
+                    </div>
+                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
+                        <h3 class="text-4xs font-bold text-green-500 uppercase tracking-wider mb-2">// Нові оператори (Допуск)</h3>
+                        <div class="overflow-y-auto max-h-32"><table class="w-full text-left text-3xs text-zinc-400"><tbody id="users-table-body"></tbody></table></div>
+                    </div>
+                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
+                        <h3 class="text-4xs font-bold text-red-500 uppercase tracking-wider mb-2">// Адміністрування (Admin)</h3>
+                        <div class="overflow-y-auto max-h-32"><table class="w-full text-left text-3xs text-zinc-400"><tbody id="admins-table-body"></tbody></table></div>
+                    </div>
+                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800 flex flex-col justify-between">
+                        <div>
+                            <h3 class="text-4xs font-bold text-zinc-400 uppercase tracking-wider mb-1">// Первинний масив</h3>
+                            <p class="text-4xs text-zinc-500 font-sans leading-relaxed">Скачування повної таблиці вильотів підрозділу у вихідному форматі Excel.</p>
+                        </div>
+                        <button onclick="exportToExcel()" class="w-full bg-emerald-850 hover:bg-emerald-700 text-white p-2 rounded font-bold text-center text-3xs cursor-pointer transition">Скачати Excel (.xlsx)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="graphic-report-template" class="fixed -left-9999 top-0 w-[450px] bg-zinc-950 p-6 rounded-none border-4 border-zinc-800 font-mono text-white flex flex-col shadow-2xl">
+        <div class="text-center border-b-2 border-zinc-800 pb-3 mb-4">
+            <h2 class="text-sm font-black tracking-widest text-red-500 uppercase">⚡ SVAROG TEAM // БОЙОВИЙ РАПОРТ ЕКІПАЖІВ</h2>
+            <p id="graph-report-date" class="text-4xs text-zinc-500 mt-1">ПЕРІОД ЗВІТНОСТІ</p>
+        </div>
+        <div id="graph-report-content" class="space-y-4 text-2xs"></div>
+        <div class="text-center border-t border-zinc-900 pt-4 mt-6 text-4xs text-zinc-600 tracking-wider">
+            ДАНІ СИНХРОНІЗОВАНО З ЦИФРОВИМ ЖУРНАЛОМ КОРД
+        </div>
+    </div>
+
+    <div id="history-modal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-3 hidden z-50">
+        <div class="bg-zinc-950 border border-zinc-800 rounded-xl max-w-6xl w-full p-4 max-h-[90vh] flex flex-col font-mono">
+            <div class="flex justify-between items-center mb-3 pb-2 border-b border-zinc-800">
+                <h3 class="text-xs font-bold text-white uppercase tracking-widest">// КОРЕКТУВАННЯ ТАКТИЧНИХ МАСИВІВ ЖУРНАЛУ</h3>
+                <button onclick="closeHistoryModal()" class="text-zinc-500 hover:text-white font-bold text-lg cursor-pointer">&times;</button>
+            </div>
+            <div class="overflow-x-auto overflow-y-auto flex-1">
+                <table class="w-full text-left text-4xs border border-zinc-900">
+                    <thead class="bg-zinc-900 text-zinc-300 sticky top-0 uppercase text-center">
+                        <tr>
+                            <th class="p-2 border border-zinc-800">Дата/Час</th>
+                            <th class="p-2 border border-zinc-800">Оператор</th>
+                            <th class="p-2 border border-zinc-800">Екіпаж</th>
+                            <th class="p-2 border border-zinc-800">Борт ID</th>
+                            <th class="p-2 border border-zinc-800">Засіб</th>
+                            <th class="p-2 border border-zinc-800">Ціль</th>
+                            <th class="p-2 border border-zinc-800">Результат (Статус)</th>
+                            <th class="p-2 border border-zinc-800">Втрата</th>
+                            <th class="p-2 border border-zinc-800">Коментар</th>
+                            <th class="p-2 border border-zinc-800">Дія</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="divide-y divide-zinc-900"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbyLWS1A6-cBjdY_OLSjZGeIjAOrZHXTJCM7wUNiPfXZo4hPID10dfQgJ6Ju7u4xGHn4/exec"; 
+        const EXCEL_DOWNLOAD_URL = "https://docs.google.com/spreadsheets/d/1WS1A6-cBjdY_OLSjZGeIjAOrZHXTJCM7wUNiPfXZo4hPID10dfQgJ6Ju7u4xGHn4/export?format=xlsx";
+
+        let isLoginMode = true; 
+        let currentUserLog = "";
+        let globalConfig = { objects: [], statuses: [], reasons: [], weapons: [], crews: [] };
+        let allHistoryRows = [];
+        let cachedTotalsText = "";
+
+        let filterStartDateTime = null;
+        let filterEndDateTime = null;
+
+        window.onload = function() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('user-datetime').value = now.toISOString().slice(0, 16);
+            loadRebDirectiveLocal();
+        };
+
+        function loadRebDirectiveLocal() {
+            const saved = localStorage.getItem("current_reb_directive");
+            if (saved) document.getElementById("user-reb-text").innerText = saved;
+        }
+
+        function updateRebDirective() {
+            const text = document.getElementById("admin-reb-input").value.trim();
+            if(!text) return alert("Введіть зведення РЕБ!");
+            localStorage.setItem("current_reb_directive", text);
+            alert("📡 Оновлено! Директива РЕБ розіслана на планшети екіпажів.");
+            loadRebDirectiveLocal();
+        }
+
+        // РОЗУМНА ОФЛАЙН-ЧЕРГА З ОБМЕЖЕННЯМ СПРОБ (ЗАБЕЗПЕЧУЄ СТАБІЛЬНІСТЬ ПЛАНШЕТА)
+        setInterval(async () => {
+            if (!navigator.onLine) return;
+            let queue = JSON.parse(localStorage.getItem("offline_reports_queue") || "[]");
+            if (queue.length === 0) return;
+            
+            let report = queue[0];
+            if (!report.retryCount) report.retryCount = 0;
+
+            try {
+                await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(report) });
+                queue.shift(); 
+                localStorage.setItem("offline_reports_queue", JSON.stringify(queue));
+                updateOfflineQueueIndicator();
+            } catch(e) { 
+                console.log("Помилка відправки елемента черги. Перевірка ліміту спроб...");
+                report.retryCount++;
+                if (report.retryCount >= 3) {
+                    queue.shift();
+                    queue.push(report); // Ротуємо збійний запис в кінець, щоб не блокувати наступні
+                    localStorage.setItem("offline_reports_queue", JSON.stringify(queue));
+                    console.log("⚠️ Запис ротовано в кінець через 3 невдалі спроби.");
+                }
+            }
+        }, 8000);
+
+        function updateOfflineQueueIndicator() {
+            let queue = JSON.parse(localStorage.getItem("offline_reports_queue") || "[]");
+            const tag = document.getElementById("offline-queue-tag");
+            if(queue.length > 0) {
+                tag.innerText = `⚠️ Автономний режим: в черзі ${queue.length} звітів`;
+                tag.classList.remove("hidden");
+            } else { tag.classList.add("hidden"); }
+        }
+
+        function toggleAccordion(id) {
+            const content = document.getElementById(id);
+            const icon = document.getElementById(id + "-icon");
+            if (content.classList.contains("open")) {
+                content.classList.remove("open"); icon.innerText = "┼";
+            } else { content.classList.add("open"); icon.innerText = "─"; }
+        }
+
+        function addCommentTag(text) {
+            const textarea = document.getElementById("user-comment");
+            textarea.value = textarea.value ? textarea.value + ", " + text : text;
+        }
+
+        function toggleAuthMode() {
+            isLoginMode = !isLoginMode;
+            document.getElementById("auth-title").innerText = isLoginMode ? "Вхід в систему" : "Реєстрація акаунту";
+            document.getElementById("main-btn").innerText = isLoginMode ? "Увійти" : "Подати заявку";
+        }
+
+        function handleSubmit() { if (isLoginMode) { handleLogin(); } else { handleRegister(); } }
+
+        async function handleRegister() {
+            const u = document.getElementById("username").value.trim();
+            const p = document.getElementById("password").value.trim();
+            if(!u || !p) return alert("Заповніть поля!");
+            try {
+                await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "register", username: u, password: p }) });
+                alert("Заявку на допуск надіслано головному адміну!");
+                toggleAuthMode();
+            } catch (e) { alert("Помилка зв'язку"); }
+        }
+
+        async function handleLogin() {
+            const u = document.getElementById("username").value.trim();
+            const p = document.getElementById("password").value.trim();
+            if(!u || !p) return alert("Заповніть поля!");
+
+            try {
+                await fetch(API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "login", username: u, password: p }) });
+                currentUserLog = u;
+                document.getElementById("auth-box").classList.add("hidden");
+
+                if (u.toLowerCase() === "admin") {
+                    document.getElementById("admin-box").classList.remove("hidden");
+                    loadRebDirectiveLocal();
+                    try { 
+                        await reloadConfigFromDatabase(); 
+                        fetchAndRenderAdminStats(); 
+                        loadUsersList(); 
+                    } catch(e) { loadConfigFromCache(); fetchAndRenderAdminStats(); }
+                } else {
+                    document.getElementById("user-box").classList.remove("hidden");
+                    loadRebDirectiveLocal(); updateOfflineQueueIndicator();
+                    try { 
+                        await reloadConfigFromDatabase(); 
+                        buildUserForm(); 
+                        calculateUserShiftEfficiency();
+                    } catch(e) { loadConfigFromCache(); buildUserForm(); }
+                }
+            } catch (error) { alert("Помилка бази."); }
+        }
+
+        async function reloadConfigFromDatabase() {
+            const configResp = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getFormConfig" }) });
+            globalConfig = await configResp.json();
+            if(!globalConfig.crews) globalConfig.crews = [];
+            // НАДІЙНИЙ ЛОКАЛЬНИЙ КЕШ (ВИДАЛИЛИ СТАРИЙ ФАЛБЕК ХАРДКОД)
+            localStorage.setItem("cached_global_config", JSON.stringify(globalConfig));
+        }
+
+        function loadConfigFromCache() {
+            const cached = localStorage.getItem("cached_global_config");
+            if (cached) {
+                globalConfig = JSON.parse(cached);
+                console.log("⚙️ Стягнуто актуальну конфігурацію адміна з локального кешу пристрою.");
+            }
+        }
+
+        function buildUserForm() {
+            document.getElementById("user-crew").innerHTML = (globalConfig.crews?.length > 0 ? globalConfig.crews : ["Default Crew"]).map(c => `<option value="${c}">${c}</option>`).join('');
+            document.getElementById("user-target").innerHTML = (globalConfig.objects?.length > 0 ? globalConfig.objects : ["Цілі відсутні"]).map(t => `<option value="${t}">${t}</option>`).join('');
+            document.getElementById("user-status").innerHTML = (globalConfig.statuses?.length > 0 ? globalConfig.statuses : ["Знищено", "Уражено"]).map(s => `<option value="${s}">${s}</option>`).join('');
+            document.getElementById("user-lost-reason").innerHTML = (globalConfig.reasons?.length > 0 ? globalConfig.reasons : ["Невідомо"]).map(r => `<option value="${r}">${r}</option>`).join('');
+            document.getElementById("user-weapon").innerHTML = (globalConfig.weapons?.length > 0 ? globalConfig.weapons : ["Засоби відсутні"]).map(w => `<option value="${w}">${w}</option>`).join('');
+            checkStatusLogic();
+        }
+
+        function checkStatusLogic() {
+            const status = document.getElementById("user-status").value;
+            const block = document.getElementById("lost-reason-block");
+            if (status.toLowerCase().includes("втрата") || status.toLowerCase().includes("падіння")) { block.classList.remove("hidden"); } else { block.classList.add("hidden"); }
+        }
+
+        async function calculateUserShiftEfficiency() {
+            try {
+                const resp = await fetch(API_URL, { method: "POST", mode: "cors", body: JSON.stringify({ action: "getHistory" }) });
+                const res = await resp.json();
+                let myFlights = res.history.filter(r => String(r.user).toLowerCase() === currentUserLog.toLowerCase());
+                let total = myFlights.length;
+                let success = myFlights.filter(r => r.res === "Знищено" || r.res === "Уражено").length;
+                let percent = total > 0 ? Math.round((success / total) * 100) : 0;
+                document.getElementById("user-efficiency-tag").innerText = `Ефективність зміни: Вильотів: ${total} | Успішних: ${success} (${percent}%)`;
+            } catch(e) {}
+        }
+
+        async function sendUserReport() {
+            const data = {
+                action: "addReport", username: currentUserLog,
+                crewName: document.getElementById("user-crew").value, 
+                eventDateTime: document.getElementById("user-datetime").value,
+                targetObject: document.getElementById("user-target").value,
+                resultStatus: document.getElementById("user-status").value,
+                lostReason: document.getElementById("lost-reason-block").classList.contains("hidden") ? "" : document.getElementById("user-lost-reason").value,
+                weaponUsed: document.getElementById("user-weapon").value,
+                droneId: document.getElementById("user-drone-id").value.trim() || "Б/Н",
+                comment: `[БК: ${document.getElementById("user-ammo").value}] ` + document.getElementById("user-comment").value.trim()
+            };
+
+            if (!navigator.onLine) {
+                let queue = JSON.parse(localStorage.getItem("offline_reports_queue") || "[]");
+                queue.push(data); localStorage.setItem("offline_reports_queue", JSON.stringify(queue));
+                updateOfflineQueueIndicator();
+                alert("⚠️ Зв'язок відсутній. Звіт збережено в офлайн-пам'ять планшета!");
+                document.getElementById("user-comment").value = "";
+                return;
+            }
+
+            try {
+                await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(data) });
+                alert("Рапорт успішно надіслано!");
+                document.getElementById("user-comment").value = "";
+                calculateUserShiftEfficiency();
+            } catch (e) { alert("Помилка відправки"); }
+        }
+
+        async function addDynamicOption() {
+            const type = document.getElementById("admin-opt-type").value;
+            const val = document.getElementById("admin-opt-value").value.trim();
+            if(!val) return alert("Введіть значення!");
+            try {
+                await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "addDynamicOption", type: type, value: val }) });
+                alert("Елемент успішно додано в довідники!");
+                document.getElementById("admin-opt-value").value = "";
+                await reloadConfigFromDatabase();
+                fetchAndRenderAdminStats();
+            } catch (e) { alert("Помилка конфігуратора"); }
+        }
+
+        function applyCustomFilter() {
+            const startVal = document.getElementById("filter-start").value;
+            const endVal = document.getElementById("filter-end").value;
+            if(!startVal || !endVal) return alert("Оберіть обидва показники!");
+            filterStartDateTime = new Date(startVal);
+            filterEndDateTime = new Date(endVal);
+            document.getElementById("filter-status-text").innerText = `Застосовано: з ${startVal.replace('T',' ')} по ${endVal.replace('T',' ')}`;
+            renderFilteredStatistics();
+        }
+
+        function setWednesdayFilter() {
+            const now = new Date();
+            const currentDay = now.getDay();
+            let lastWednesday = new Date(now);
+            let daysToSub = (currentDay >= 3) ? (currentDay - 3) : (currentDay + 4);
+            lastWednesday.setDate(now.getDate() - daysToSub);
+            lastWednesday.setHours(9, 0, 0, 0);
+
+            let nextWednesday = new Date(lastWednesday);
+            nextWednesday.setDate(lastWednesday.getDate() + 7);
+
+            filterStartDateTime = lastWednesday;
+            filterEndDateTime = nextWednesday;
+
+            const formatDT = (d) => {
+                let off = d.getTimezoneOffset();
+                let local = new Date(d.getTime() - (off * 60 * 1000));
+                return local.toISOString().slice(0, 16);
+            };
+
+            document.getElementById("filter-start").value = formatDT(lastWednesday);
+            document.getElementById("filter-end").value = formatDT(nextWednesday);
+            document.getElementById("filter-status-text").innerText = `Авто-режим: Середа 09:00 ➔ Середа 09:00`;
+            renderFilteredStatistics();
+        }
+
+        async function fetchAndRenderAdminStats() {
+            try {
+                const resp = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getHistory" }) });
+                const res = await resp.json();
+                allHistoryRows = res.history || [];
+                renderFilteredStatistics();
+            } catch(e) { console.log("Помилка статистики."); }
+        }
+
+        let globalCrewAggregations = {}; 
+
+        // ОПТИМІЗАЦІЯ ОБЧИСЛЕНЬ ТА СТАТИСТИКИ (ПЕРЕХІД НА DOM BUFFER ТА СКРИТТЯ ПУСТИХ БЛОКІВ)
+        function renderFilteredStatistics() {
+            const wrapper = document.getElementById("stats-crews-wrapper");
+            
+            let activeStatuses = globalConfig.statuses?.length > 0 ? globalConfig.statuses : ["Знищено", "Уражено", "Падіння в районі цілі", "Втрата борта"];
+            let activeCrews = globalConfig.crews?.length > 0 ? globalConfig.crews : ["Екіпаж Сокіл", "Екіпаж Яструб", "Екіпаж Грім", "Екіпаж Сварог"];
+            let activeReasons = globalConfig.reasons?.length > 0 ? globalConfig.reasons : ["Розряд АКБ", "Розрив оптоволокна", "Детонація бк"];
+
+            let crewStats = {};
+            activeCrews.forEach(cr => {
+                crewStats[cr] = {};
+                activeStatuses.forEach(st => crewStats[cr][st] = 0);
+            });
+
+            let rebCounts = {}; activeReasons.forEach(r => rebCounts[r] = 0);
+            let timePhases = { "Ніч (00-06)": 0, "Ранок (06-12)": 0, "День (12-18)": 0, "Сутінки (18-24)": 0 };
+            let lostTimePhases = { "Ніч (00-06)": 0, "Ранок (06-12)": 0, "День (12-18)": 0, "Сутінки (18-24)": 0 };
+            let ammoCounts = { "Кумулятивний (КЗ-6)": 0, "Осколково-фугасний (ОФСП)": 0, "Термобаричний (ТБГ)": 0, "Особливий збір / Інше": 0 };
+            let batchData = {}; 
+            let opRating = {};
+
+            allHistoryRows.forEach(row => {
+                let cleanDateStr = String(row.date).split("T")[0];
+                let rowDateTime = new Date(`${cleanDateStr}T${row.time}`);
+                if (filterStartDateTime && rowDateTime < filterStartDateTime) return;
+                if (filterEndDateTime && rowDateTime > filterEndDateTime) return;
+
+                let hr = rowDateTime.getHours();
+                let currentPhase = "Сутінки (18-24)";
+                if(hr >= 0 && hr < 6) currentPhase = "Ніч (00-06)";
+                else if(hr >= 6 && hr < 12) currentPhase = "Ранок (06-12)";
+                else if(hr >= 12 && hr < 18) currentPhase = "День (12-18)";
+
+                timePhases[currentPhase] += 1;
+
+                let commentStr = row.comm || "";
+                Object.keys(ammoCounts).forEach(type => { if (commentStr.includes(`[БК: ${type}]`)) ammoCounts[type] += 1; });
+
+                let rawId = String(row.droneId || "Б/Н").toUpperCase().trim();
+                let batchName = rawId.split("-")[0] || "ІНШІ";
+                if(batchName !== "Б/Н" && batchName !== "") {
+                    if(!batchData[batchName]) batchData[batchName] = { total: 0, lost: 0, success: 0 };
+                    batchData[batchName].total += 1;
+                    if(row.res?.includes("Втрата") || row.res?.includes("Падіння")) batchData[batchName].lost += 1;
+                    if(row.res === "Знищено" || row.res === "Уражено") batchData[batchName].success += 1;
+                }
+
+                let rawCrew = row.crewName || "Невідомий Екіпаж";
+                let normCrew = activeCrews.find(c => c.toLowerCase() === rawCrew.trim().toLowerCase()) || rawCrew;
+                let normStatus = activeStatuses.find(s => s.toLowerCase() === String(row.res).trim().toLowerCase());
+
+                if (normStatus) {
+                    if (!crewStats[normCrew]) {
+                        crewStats[normCrew] = {};
+                        activeStatuses.forEach(st => crewStats[normCrew][st] = 0);
+                    }
+                    crewStats[normCrew][normStatus] += 1;
+                }
+
+                let normReason = activeReasons.find(r => r.toLowerCase() === String(row.reason).trim().toLowerCase());
+                if (normReason && (row.res?.includes("Втрата") || row.res?.includes("Падіння"))) { 
+                    rebCounts[normReason] += 1; 
+                    lostTimePhases[currentPhase] += 1;
+                }
+
+                if(row.user) {
+                    if(!opRating[row.user]) opRating[row.user] = { total: 0, success: 0 };
+                    opRating[row.user].total += 1;
+                    if(row.res === "Знищено" || row.res === "Уражено") opRating[row.user].success += 1;
+                }
+            });
+
+            globalCrewAggregations = crewStats; 
+
+            cachedTotalsText = "📊 ТАКТИЧНИЙ ЗВІТ ПО ЕКІПАЖАХ БПЛА\n";
+            cachedTotalsText += filterStartDateTime ? `Період: з ${document.getElementById("filter-start").value.replace('T',' ')} по ${document.getElementById("filter-end").value.replace('T',' ')}\n` : "Період: За весь час\n";
+            cachedTotalsText += "--------------------------------------\n";
+
+            // ВИКОРИСТАННЯ HTML BUFFER (ЗАПОБІГАЄ REFLOW БРАУЗЕРА)
+            let htmlBuffer = "";
+
+            Object.keys(crewStats).forEach(crew => {
+                let hasCrewData = Object.values(crewStats[crew]).some(val => val > 0);
+                if (!hasCrewData) return; // Скриття пустих блоків (вимоги аудиту)
+
+                cachedTotalsText += `⚔️ Екіпаж: "${crew}"\n`;
+
+                let statusRowsHtml = "";
+                Object.keys(crewStats[crew]).forEach(status => {
+                    let totalVal = crewStats[crew][status];
+                    if(totalVal > 0) {
+                        cachedTotalsText += `  🔹 ${status}: ${totalVal} шт.\n`;
+                    }
+                    
+                    let icon = "🎯";
+                    if (status.toLowerCase().includes("знищено")) icon = "💥";
+                    if (status.toLowerCase().includes("уражено")) icon = "⚡";
+                    if (status.toLowerCase().includes("падіння")) icon = "📉";
+                    if (status.toLowerCase().includes("втрата")) icon = "❌";
+
+                    statusRowsHtml += `
+                        <div class="flex justify-between items-center bg-zinc-950 p-1.5 rounded border border-zinc-900">
+                            <span class="text-zinc-400 text-3xs truncate flex items-center gap-1"><span>${icon}</span> ${status}:</span>
+                            <span class="font-black text-white text-2xs font-mono">${totalVal}</span>
+                        </div>
+                    `;
+                });
+                cachedTotalsText += "\n";
+
+                htmlBuffer += `
+                    <div class="bg-zinc-900/60 border border-zinc-800 rounded-xl p-3 shadow-md flex flex-col justify-between">
+                        <div class="border-b border-zinc-800 pb-1.5 mb-2 flex justify-between items-center">
+                            <span class="text-2xs font-black text-green-400 uppercase tracking-wider">⚔️ ${crew}</span>
+                            <span class="text-4xs text-zinc-600 font-sans font-bold">// СТАТИСТИКА</span>
+                        </div>
+                        <div class="grid grid-cols-2 gap-1.5">
+                            ${statusRowsHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            // ОДНОРАЗОВИЙ МОНТАЖ В DOM ИЗ БУФЕРА
+            wrapper.innerHTML = htmlBuffer || "<div class='col-span-full text-center text-zinc-600 py-4 font-sans text-3xs'>Не знайдено бойових рапортів за вказаний період.</div>";
+
+            document.getElementById("reb-analytics-list").innerHTML = activeReasons.map(r => `
+                <div class="bg-zinc-950/40 p-1.5 rounded border border-zinc-850 flex justify-between items-center">
+                    <span>${r}</span> <span class="font-bold text-red-500">${rebCounts[r]} б.</span>
+                </div>
+            `).join('');
+
+            let sortedOps = Object.keys(opRating).sort((a,b) => opRating[b].success - opRating[a].success);
+            document.getElementById("operator-rating-list").innerHTML = sortedOps.map(op => {
+                let pct = Math.round((opRating[op].success / opRating[op].total) * 100);
+                return `
+                    <div class="p-1.5 rounded border bg-zinc-950/40 border-zinc-850 flex justify-between items-center">
+                        <span class="font-bold text-zinc-200">👤 @${op}</span>
+                        <span class="font-mono text-zinc-400 text-4xs">${opRating[op].success}/${opRating[op].total} (${pct}%)</span>
+                    </div>
+                `;
+            }).join('');
+
+            let maxLostPhase = Object.keys(lostTimePhases).reduce((a, b) => lostTimePhases[a] > lostTimePhases[b] ? a : b);
+            document.getElementById("time-intensity-list").innerHTML = Object.keys(timePhases).map(phase => {
+                let isDangerous = (lostTimePhases[phase] > 0 && phase === maxLostPhase);
+                return `
+                    <div class="bg-zinc-950/40 p-1.5 rounded border ${isDangerous ? 'border-red-900/50 bg-red-950/5' : 'border-zinc-850'} flex justify-between items-center">
+                        <span class="${isDangerous ? 'text-red-400 font-bold' : 'text-zinc-300'}">${phase}</span>
+                        <span class="font-bold font-mono text-purple-400">${timePhases[phase]} вил.</span>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById("drone-batch-analytics").innerHTML = Object.keys(batchData).map(batch => {
+                let successRate = Math.round((batchData[batch].success / batchData[batch].total) * 100) || 0;
+                return `
+                    <div class="bg-zinc-950 p-2 rounded border border-zinc-800">
+                        <div class="text-4xs text-green-400 uppercase font-black truncate">${batch}</div>
+                        <div class="flex justify-between items-center mt-1 text-4xs text-zinc-500">
+                            <span>ККД: <strong class="text-white">${successRate}%</strong></span>
+                            <span>Всього: ${batchData[batch].total} | Втрат: <strong class="text-red-500">${batchData[batch].lost}</strong></span>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            document.getElementById("ammo-consumption-list").innerHTML = Object.keys(ammoCounts).map(type => `
+                <div class="bg-zinc-950 p-2 rounded border border-zinc-800 text-center">
+                    <div class="text-4xs text-zinc-500 uppercase truncate" title="${type}">${type.split(' ')[0]}</div>
+                    <div class="text-md font-bold text-orange-500 mt-1">${ammoCounts[type]} <span class="text-3xs text-zinc-500">шт.</span></div>
+                </div>
+            `).join('');
+        }
+
+        function generateGraphicReport() {
+            const template = document.getElementById("graphic-report-template");
+            const contentBox = document.getElementById("graph-report-content");
+            const dateBox = document.getElementById("graph-report-date");
+
+            const startVal = document.getElementById("filter-start").value;
+            const endVal = document.getElementById("filter-end").value;
+            dateBox.innerText = startVal ? `ПЕРІОД: З ${startVal.replace('T',' ')} ПО ${endVal.replace('T',' ')}` : "ЗВІТ ЗА ВЕСЬ ЧАС СЛУЖБИ";
+
+            contentBox.innerHTML = "";
+            let hasGlobalData = false;
+
+            Object.keys(globalCrewAggregations).forEach(crew => {
+                let hasCrewData = Object.values(globalCrewAggregations[crew]).some(val => val > 0);
+                if (!hasCrewData) return;
+
+                hasGlobalData = true;
+                let rowsHtml = "";
+
+                Object.keys(globalCrewAggregations[crew]).forEach(status => {
+                    let totalVal = globalCrewAggregations[crew][status];
+                    if (totalVal > 0) {
+                        rowsHtml += `
+                            <div class="flex justify-between border-b border-zinc-900/40 py-1 text-3xs">
+                                <span class="text-zinc-400 uppercase font-medium">  • ${status}</span>
+                                <span class="text-green-400 font-black font-mono">${totalVal} ШТ.</span>
+                            </div>
+                        `;
+                    }
+                });
+
+                contentBox.innerHTML += `
+                    <div class="bg-zinc-900/40 p-2.5 rounded border border-zinc-800">
+                        <div class="text-xs font-black text-amber-500 uppercase border-b border-zinc-800 pb-1 mb-1.5">⚔️ ${crew}</div>
+                        <div class="space-y-1">${rowsHtml}</div>
+                    </div>
+                `;
+            });
+
+            if(!hasGlobalData) return alert("Немає даних за обраний період для створення інфографіки.");
+
+            template.style.left = "0px";
+
+            html2canvas(template, { backgroundColor: "#09090b", scale: 2 }).then(canvas => {
+                template.style.left = "-9999px";
+                const link = document.createElement("a");
+                link.download = `SVAROG_CREWS_REPORT_${new Date().toISOString().slice(0,10)}.png`;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                alert("🖼️ Інфографіку з розподілом по екіпажах успішно згенеровано!");
+            });
+        }
+
+        function generateTextReport() {
+            if(!cachedTotalsText || cachedTotalsText.trim() === "") return alert("Немає зведених даних.");
+            navigator.clipboard.writeText(cachedTotalsText);
+            alert("📋 Текст розподіленого тактичного рапорту скопійовано для соцмереж!");
+        }
+
+        async function openHistoryModal() {
+            document.getElementById("history-modal").classList.remove("hidden");
+            const tbody = document.getElementById("history-table-body");
+            tbody.innerHTML = "<tr><td class='p-4 text-center text-zinc-500' colspan='10'>Синхронізація тактичного журналу...</td></tr>";
+            try {
+                const resp = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getHistory" }) });
+                const res = await resp.json();
+                allHistoryRows = res.history || [];
+                tbody.innerHTML = "";
+
+                allHistoryRows.forEach(row => {
+                    let cleanDate = String(row.date).split("T")[0];
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-zinc-900/50 transition">
+                            <td class="p-1 flex space-x-0.5 border border-zinc-850">
+                                <input type="date" id="edit-date-${row.id}" value="${cleanDate}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-20 focus:outline-none">
+                                <input type="text" id="edit-time-${row.id}" value="${row.time}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-10 text-center focus:outline-none">
+                            </td>
+                            <td class="p-1 font-bold text-zinc-500 text-center border border-zinc-850">${row.user}</td>
+                            <td class="p-1 border border-zinc-850">
+                                <input type="text" id="edit-crew-${row.id}" value="${row.crewName || 'Не вказано'}" class="bg-zinc-900 p-1 rounded text-center text-blue-400 font-bold text-4xs w-24 focus:outline-none">
+                            </td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-drone-${row.id}" value="${row.droneId || 'Б/Н'}" class="bg-zinc-900 p-1 rounded text-center text-amber-400 font-bold text-4xs w-16 focus:outline-none"></td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-weapon-${row.id}" value="${row.weapon || ''}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24 focus:outline-none"></td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-obj-${row.id}" value="${row.obj}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24 focus:outline-none"></td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-res-${row.id}" value="${row.res}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24 focus:outline-none"></td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-reason-${row.id}" value="${row.reason || ''}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24 focus:outline-none"></td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-comm-${row.id}" value="${row.comm || ''}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-32 focus:outline-none"></td>
+                            <td class="p-1 text-center border border-zinc-850">
+                                <button onclick="saveRowChange('${row.id}')" class="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded text-4xs font-bold cursor-pointer transition">Зберегти</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch(e) { tbody.innerHTML = "<tr><td class='p-4 text-center text-red-500' colspan='10'>Помилка завантаження журналу.</td></tr>"; }
+        }
+
+        async function saveRowChange(id) {
+            const data = {
+                action: "editHistoryRow", rowId: id,
+                date: document.getElementById(`edit-date-${id}`).value,
+                time: document.getElementById(`edit-time-${id}`).value,
+                crewName: document.getElementById(`edit-crew-${id}`).value, 
+                targetObject: document.getElementById(`edit-obj-${id}`).value,
+                resultStatus: document.getElementById(`edit-res-${id}`).value,
+                lostReason: document.getElementById(`edit-reason-${id}`).value,
+                weaponUsed: document.getElementById(`edit-weapon-${id}`).value,
+                droneId: document.getElementById(`edit-drone-${id}`).value,
+                comment: document.getElementById(`edit-comm-${id}`).value
+            };
+            await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(data) });
+            alert("Запис успішно оновлено!");
+            fetchAndRenderAdminStats();
+        }
+
+        function closeHistoryModal() { document.getElementById("history-modal").classList.add("hidden"); }
+
+        async function loadUsersList() {
+            try {
+                const response = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getUsers" }) });
+                const res = await response.json();
+                const tbody = document.getElementById("users-table-body");
+                const abody = document.getElementById("admins-table-body");
+                tbody.innerHTML = ""; abody.innerHTML = "";
+
+                res.users.forEach(user => {
+                    if (user.role === "admin") {
+                        let abor_role_html = `
+                            <tr class="border-b border-zinc-800">
+                                <td class="p-1.5 text-zinc-300 font-bold">@${user.username}</td>
+                                <td class="p-1.5 text-right space-x-1">
+                                    <button onclick="changePassAdminPrompt('${user.id}')" class="bg-amber-600 text-white px-2 py-0.5 rounded text-4xs cursor-pointer transition">Пароль</button>
+                                    ${user.username.toLowerCase() !== 'admin' ? `<button onclick="manageUser('${user.id}', 'delete')" class="bg-red-600 text-white px-2 py-0.5 rounded text-4xs cursor-pointer transition">&times;</button>` : ''}
+                                </td>
+                            </tr>
+                        `;
+                        abody.innerHTML += abor_role_html;
+                    } else if (user.status === "pending") {
+                        tbody.innerHTML += `
+                            <tr class="border-b border-zinc-800">
+                                <td class="p-1.5 text-zinc-300 font-medium">${user.username}</td>
+                                <td class="p-1.5 text-right space-x-1">
+                                    <button onclick="manageUser('${user.id}', 'approve')" class="bg-green-600 text-white px-2 py-0.5 rounded text-4xs font-bold cursor-pointer transition">V</button>
+                                    <button onclick="manageUser('${user.id}', 'delete')" class="bg-red-600 text-white px-2 py-0.5 rounded text-4xs font-bold cursor-pointer transition">&times;</button>
+                                </td>
+                            </tr>
+                        `;
+                    }
+                });
+                if(tbody.innerHTML === "") tbody.innerHTML = "<tr><td class='p-2 text-zinc-600 text-center'>Немає нових заявок</td></tr>";
+                if(abody.innerHTML === "") abody.innerHTML = "<tr><td class='p-2 text-zinc-600 text-center'>Немає інших адмінів</td></tr>";
+            } catch(e) { console.log(e); }
+        }
+
+        function changePassAdminPrompt(userId) {
+            const newPass = prompt("Введіть новий пароль для адміністратора:");
+            if (newPass && newPass.trim() !== "") {
+                fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "manageUser", subAction: "changePass", userId: userId, newPassword: newPass.trim(), adminName: currentUserLog }) }).then(() => alert("Пароль успішно змінено!"));
+            }
+        }
+
+        // ВИПРАВЛЕНО CRASH-ПОМИЛКУ В MANAGEUSER (ОГОЛОШЕНО ОБ'ЄКТ DATA)
+        async function manageUser(userId, subAction) {
+            const data = { action: "manageUser", subAction: subAction, userId: userId, adminName: currentUserLog };
+            await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(data) });
+            setTimeout(loadUsersList, 1000);
+        }
+
+        function exportToExcel() { window.open(EXCEL_DOWNLOAD_URL, '_blank'); }
+    </script>
+</body>
+</html>
