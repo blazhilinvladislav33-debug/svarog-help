@@ -437,7 +437,7 @@
             }
         }
 
-        // ПОВНІСТЮ ВИПРАВЛЕНО ШАБЛОННІ РЯДКИ ТА ЗВОРОТНІ ЛАПКИ ДЛЯ СЕЛЕКТІВ
+        // ПОВНІСТЮ ВІДНОВЛЕНА ФУНКЦІЯ ПІДТЯГУВАННЯ СПИСКІВ (ВИПРАВЛЕНО ШАБЛОННИЙ СИНТАКСИС)
         function buildUserForm() {
             document.getElementById("user-crew").innerHTML = (globalConfig.crews?.length > 0 ? globalConfig.crews : ["Default Crew"]).map(c => `<option value="${c}">${c}</option>`).join('');
             document.getElementById("user-target").innerHTML = (globalConfig.objects?.length > 0 ? globalConfig.objects : ["Цілі відсутні"]).map(t => `<option value="${t}">${t}</option>`).join('');
@@ -555,7 +555,7 @@
 
         let globalCrewAggregations = {}; 
 
-        // ПОВНІСТЮ ВІДНОВЛЕНО ТА СТАБІЛІЗОВАНО ОБЧИСЛЕННЯ ЗБИТТІВ ТА ЕКІПАЖІВ
+        // ОНОВЛЕНИЙ ЦИКЛ ОБЧИСЛЕННЯ ЗБИТТІВ ТА ЕКІПАЖІВ (З ПОДІЛОМ НА СТАТУСИ)
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             
@@ -786,7 +786,7 @@
             alert("📋 Текст розподіленого тактичного рапорту скопійовано для соцмереж!");
         }
 
-        // ПОВНІСТЮ ВІДНОВЛЕНО HTML ТА ДИНАМІЧНИЙ РЕНДЕР ЖУРНАЛУ (БІЛЬШЕ НЕ ПОРОЖНІЙ)
+        // ПОВНІСТЮ ВІДНОВЛЕНО HTML ТА ТАБЛИЧНИЙ РЕНДЕР ЖУРНАЛУ ВИЛЬОТІВ
         async function openHistoryModal() {
             document.getElementById("history-modal").classList.remove("hidden");
             const tbody = document.getElementById("history-table-body");
@@ -844,7 +844,7 @@
 
         function closeHistoryModal() { document.getElementById("history-modal").classList.add("hidden"); }
 
-        // ПОВНІСТЮ ВІДНОВЛЕНО РЕНДЕР ДЛЯ ТАБЛИЦЬ ДОПУСКУ ОПЕРАТОРІВ ТА АДМІНІВ
+        // ПОВНІСТЮ ВІДНОВЛЕНО ТАБЛИЦІ ДОПУСКУ ОПЕРАТОРІВ ТА АДМІНІВ З КНОПКАМИ ДІЙ
         async function loadUsersList() {
             try {
                 const response = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getUsers" }) });
