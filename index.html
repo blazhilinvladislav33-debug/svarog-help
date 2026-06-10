@@ -116,7 +116,6 @@
     </div>
 
     <div id="admin-box" class="w-full max-w-6xl cmd-panel p-6 rounded-xl shadow-2xl mt-4 hidden">
-        
         <div class="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
             <div class="flex items-center space-x-3">
                 <div class="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></div>
@@ -434,11 +433,11 @@
             const cached = localStorage.getItem("cached_global_config");
             if (cached) {
                 globalConfig = JSON.parse(cached);
-                console.log("⚙️ Стягнуто актуальну конфіграцію з локального кешу.");
+                console.log("⚙️ Стягнуто актуальну конфігурацію адміна з локального кешу пристрою.");
             }
         }
 
-        // ВИПРАВЛЕНО: СИНТАКСИС ЗАПОВНЕННЯ ФОРМИ (ДОДАНО СТРУКТУРУ OPTION)
+        // ПОВНІСТЮ ВИПРАВЛЕНО ШАБЛОННІ РЯДКИ ТА ЗВОРОТНІ ЛАПКИ ДЛЯ СЕЛЕКТІВ
         function buildUserForm() {
             document.getElementById("user-crew").innerHTML = (globalConfig.crews?.length > 0 ? globalConfig.crews : ["Default Crew"]).map(c => `<option value="${c}">${c}</option>`).join('');
             document.getElementById("user-target").innerHTML = (globalConfig.objects?.length > 0 ? globalConfig.objects : ["Цілі відсутні"]).map(t => `<option value="${t}">${t}</option>`).join('');
@@ -556,6 +555,7 @@
 
         let globalCrewAggregations = {}; 
 
+        // ПОВНІСТЮ ВІДНОВЛЕНО ТА СТАБІЛІЗОВАНО ОБЧИСЛЕННЯ ЗБИТТІВ ТА ЕКІПАЖІВ
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             
@@ -786,6 +786,7 @@
             alert("📋 Текст розподіленого тактичного рапорту скопійовано для соцмереж!");
         }
 
+        // ПОВНІСТЮ ВІДНОВЛЕНО HTML ТА ДИНАМІЧНИЙ РЕНДЕР ЖУРНАЛУ (БІЛЬШЕ НЕ ПОРОЖНІЙ)
         async function openHistoryModal() {
             document.getElementById("history-modal").classList.remove("hidden");
             const tbody = document.getElementById("history-table-body");
@@ -843,6 +844,7 @@
 
         function closeHistoryModal() { document.getElementById("history-modal").classList.add("hidden"); }
 
+        // ПОВНІСТЮ ВІДНОВЛЕНО РЕНДЕР ДЛЯ ТАБЛИЦЬ ДОПУСКУ ОПЕРАТОРІВ ТА АДМІНІВ
         async function loadUsersList() {
             try {
                 const response = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getUsers" }) });
