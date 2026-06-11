@@ -139,7 +139,7 @@
                     📢 [АКТУАЛЬНІ ДИРЕКТИВИ ТА СТАН СИТУАЦІЇ]
                 </h3>
                 <p class="text-3xs text-zinc-400 font-sans leading-relaxed">
-                    Усі бойові екіпажі успішно зведені в єдину мережу обліку КОРД. Дані з планшетів операторів оновлюються в режимі реального часу кожні 10 секунд[cite: 2264]. Натисніть на бойовий екіпаж нижче, щоб розгорнути його детальну строгу статистику збиттів.
+                    Усі бойові екіпажі успішно зведені в єдину мережу обліку КОРД. Дані з планшетів операторів оновлюються в режимі реального часу кожні 10 секунд у фоновому режимі. Натисніть на бойовий екіпаж нижче, щоб розгорнути його детальну статистику збиттів.
                 </p>
             </div>
         </div>
@@ -184,34 +184,19 @@
 
         <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
             <button onclick="toggleAccordion('acc-analytics')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
-                <span>[+] АНАЛІТИЧНІ ЦЕНТРИ: РЕБ, ІНТЕНСИВНІСТЬ, СЕРІЇ БОРТІВ</span>
+                <span>[+] АНАЛІТИЧНІ ЦЕНТРИ: СЕРІЇ БОРТІВ ТА МАТЕРІАЛЬНЕ ЗАБЕЗПЕЧЕННЯ</span>
                 <span id="acc-analytics-icon">┼</span>
             </button>
             <div id="acc-analytics" class="accordion-content px-4">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 gap-4">
                     <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
-                        <h3 class="text-4xs font-black uppercase tracking-widest text-red-500 mb-2.5 border-b border-zinc-800 pb-1.5">// АНАЛІЗ РЕБ ТА ВІДМОВ ТЕХНІКИ</h3>
-                        <div id="reb-analytics-list" class="space-y-1 text-3xs font-mono"></div>
-                    </div>
-
-                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
-                        <h3 class="text-4xs font-black uppercase tracking-widest text-amber-500 mb-2.5 border-b border-zinc-800 pb-1.5">// РЕЙТИНГ БОЙОВОЇ ЕФЕКТИВНОСТІ ОПЕРАТОРІВ</h3>
-                        <div id="operator-rating-list" class="space-y-1 text-3xs font-mono"></div>
-                    </div>
-
-                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
-                        <h3 class="text-4xs font-black uppercase tracking-widest text-purple-400 mb-2.5 border-b border-zinc-800 pb-1.5">// ГРАФІК ІНТЕНСИВНОСТІ ЗА ЧАСОМ ДОБИ</h3>
-                        <div id="time-intensity-list" class="space-y-1 text-3xs font-mono"></div>
-                    </div>
-
-                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800 md:col-span-3">
-                        <h3 class="text-4xs font-black uppercase tracking-widest text-green-400 mb-2.5 border-b border-zinc-800 pb-1.5">// РОЗУМНИЙ АУДИТ ПАРТІЙ ТА СЕРІЙ БОРТІВ (СТІЙКІСТЬ ДО РЕБ / ККД)</h3>
+                        <h3 class="text-4xs font-black uppercase tracking-widest text-green-400 mb-2.5 border-b border-zinc-800 pb-1.5">// РОЗУМНИЙ АУДИТ ПАРТІЙ ТА СЕРІЙ БОРТІВ (СТІЙКІСТЬ / ККД)</h3>
                         <div id="drone-batch-analytics" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-3xs font-mono"></div>
                     </div>
 
-                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800 md:col-span-3">
+                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
                         <h3 class="text-4xs font-black uppercase tracking-widest text-orange-400 mb-2.5 border-b border-zinc-800 pb-1.5">// СУМАРНИЙ РОЗХІД БОЄПРИПАСІВ (ДЛЯ СЛУЖБИ ОЗБРОЄННЯ)</h3>
-                        <div id="ammo-consumption-list" class="grid grid-cols-2 md:grid-cols-5 gap-2 text-3xs font-mono"></div>
+                        <div id="ammo-consumption-list" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-3xs font-mono"></div>
                     </div>
                 </div>
             </div>
@@ -306,8 +291,6 @@
         let globalConfig = { objects: [], statuses: [], reasons: [], weapons: [], crews: [] };
         let allHistoryRows = [];
         let cachedTotalsText = "";
-
-        // Зберігає ID відкритого на даний момент екіпажу, щоб автооновлення не згортало його назад
         let activeOpenCrewId = null;
 
         let filterStartDateTime = null;
@@ -318,7 +301,7 @@
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('user-datetime').value = now.toISOString().slice(0, 16);
             
-            // Фонове безперебійне автооновлення кожні 10 секунд (Не заважає оператору/адміну) [cite: 2264]
+            // Запуск фонового асинхронного таймера автооновлення кожні 10 секунд
             startTacticalAutoRefresh();
         };
 
@@ -348,7 +331,7 @@
             }, 10000);
         }
 
-        // Офлайн черга планшета
+        // Офлайн черга
         setInterval(async () => {
             if (!navigator.onLine) return;
             let queue = JSON.parse(localStorage.getItem("offline_reports_queue") || "[]");
@@ -389,7 +372,6 @@
             } else { content.classList.add("open"); icon.innerText = "─"; }
         }
 
-        // Інтерактивне перемикання списку збиттів екіпажів (Локальний Акордеон)
         function toggleCrewStatisticsAccordion(crewId) {
             const content = document.getElementById(crewId);
             const icon = document.getElementById(crewId + "-icon");
@@ -399,7 +381,6 @@
                 icon.innerText = "┼";
                 if(activeOpenCrewId === crewId) activeOpenCrewId = null;
             } else {
-                // Спочатку згортаємо попередній відкритий екіпаж (якщо є), для тримання строгого порядку
                 if (activeOpenCrewId) {
                     const prevContent = document.getElementById(activeOpenCrewId);
                     const prevIcon = document.getElementById(activeOpenCrewId + "-icon");
@@ -590,13 +571,11 @@
 
         let globalCrewAggregations = {};
 
-        // РЕКОНСТРУКЦІЯ: НАДБЕЗПЕЧНИЙ ТА СТРОГИЙ СПИСОК З АКОРДЕОН-ЕФЕКТОМ ПО ЕКІПАЖАХ 
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             
             let activeStatuses = globalConfig.statuses?.length > 0 ? globalConfig.statuses : ["Знищено", "Уражено", "Падіння в районі цілі", "Втрата борта"];
             let activeCrews = globalConfig.crews?.length > 0 ? globalConfig.crews : ["Екіпаж Сокіл", "Екіпаж Яструб", "Екіпаж Грім", "Екіпаж Сварог"];
-            let activeReasons = globalConfig.reasons?.length > 0 ? globalConfig.reasons : ["Розряд АКБ", "Розрив оптоволокна", "Детонація бк"];
 
             let crewStats = {};
             activeCrews.forEach(cr => {
@@ -604,26 +583,14 @@
                 activeStatuses.forEach(st => crewStats[cr][st] = 0);
             });
 
-            let rebCounts = {}; activeReasons.forEach(r => rebCounts[r] = 0);
-            let timePhases = { "Ніч (00-06)": 0, "Ранок (06-12)": 0, "День (12-18)": 0, "Сутінки (18-24)": 0 };
-            let lostTimePhases = { "Ніч (00-06)": 0, "Ранок (06-12)": 0, "День (12-18)": 0, "Сутінки (18-24)": 0 };
             let ammoCounts = { "Кумулятивний (КЗ-6)": 0, "Осколково-фугасний (ОФСП)": 0, "Термобаричний (ТБГ)": 0, "Особливий збір / Інше": 0 };
             let batchData = {}; 
-            let opRating = {};
 
             allHistoryRows.forEach(row => {
                 let cleanDateStr = String(row.date).split("T")[0];
                 let rowDateTime = new Date(`${cleanDateStr}T${row.time}`);
                 if (filterStartDateTime && rowDateTime < filterStartDateTime) return;
                 if (filterEndDateTime && rowDateTime > filterEndDateTime) return;
-
-                let hr = rowDateTime.getHours();
-                let currentPhase = "Сутінки (18-24)";
-                if(hr >= 0 && hr < 6) currentPhase = "Ніч (00-06)";
-                else if(hr >= 6 && hr < 12) currentPhase = "Ранок (06-12)";
-                else if(hr >= 12 && hr < 18) currentPhase = "День (12-18)";
-
-                timePhases[currentPhase] += 1;
 
                 let commentStr = row.comm || "";
                 Object.keys(ammoCounts).forEach(type => { if (commentStr.includes(`[БК: ${type}]`)) ammoCounts[type] += 1; });
@@ -648,18 +615,6 @@
                     }
                     crewStats[normCrew][normStatus] += 1;
                 }
-
-                let normReason = activeReasons.find(r => r.toLowerCase() === String(row.reason).trim().toLowerCase());
-                if (normReason) { 
-                    rebCounts[normReason] += 1; 
-                    lostTimePhases[currentPhase] += 1;
-                }
-
-                if(row.user) {
-                    if(!opRating[row.user]) opRating[row.user] = { total: 0, success: 0 };
-                    opRating[row.user].total += 1;
-                    if(row.res === "Знищено" || row.res === "Уражено") opRating[row.user].success += 1;
-                }
             });
 
             globalCrewAggregations = crewStats; 
@@ -674,9 +629,7 @@
                 let hasCrewData = Object.values(crewStats[crew]).some(val => val > 0);
                 if (!hasCrewData) return; 
 
-                // Рахуємо загальну успішність екіпажу для виводу в заголовку рядка
                 let successCount = (crewStats[crew]["Знищено"] || 0) + (crewStats[crew]["Уражено"] || 0);
-
                 cachedTotalsText += `⚔️ Екіпаж: "${crew}"\n`;
 
                 let statusRowsHtml = "";
@@ -694,21 +647,17 @@
 
                     statusRowsHtml += `
                         <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900/60">
-                            <span class="text-zinc-400 text-3xs truncate flex items-center gap-1.5"><span>${icon}</span> ${status}:</span>
+                            <span class="text-zinc-400 text-3xs flex items-center gap-1.5"><span>${icon}</span> ${status}:</span>
                             <span class="font-black text-white text-2xs font-mono">${totalVal}</span>
                         </div>
                     `;
                 });
                 cachedTotalsText += "\n";
 
-                // Унікальний ID для контенту кожного екіпажу
                 let crewContentId = `crew-block-${index}`;
-                
-                // Перевірка: якщо цей екіпаж був відкритий до оновлення, зберігаємо його статус відкритим
                 let isOpenClass = (activeOpenCrewId === crewContentId) ? "open" : "";
                 let iconIndicator = (activeOpenCrewId === crewContentId) ? "─" : "┼";
 
-                // МОНТАЖ СТРОГОГО СТРУКТУРОВАНОГО СПИСКУ-ТАБЛИЦІ
                 htmlBuffer += `
                     <div class="bg-zinc-900/40 border border-zinc-800 rounded-lg overflow-hidden">
                         <div onclick="toggleCrewStatisticsAccordion('${crewContentId}')" class="crew-trigger p-3 flex justify-between items-center cursor-pointer select-none bg-zinc-900/80 border-b border-zinc-850">
@@ -729,34 +678,6 @@
             });
 
             wrapper.innerHTML = htmlBuffer || "<div class='text-center text-zinc-600 py-6 font-sans text-3xs'>Не знайдено бойових рапортів за вказаний період.</div>";
-
-            document.getElementById("reb-analytics-list").innerHTML = activeReasons.map(r => `
-                <div class="bg-zinc-950/40 p-1.5 rounded border border-zinc-850 flex justify-between items-center">
-                    <span>${r}</span> <span class="font-bold text-red-500">${rebCounts[r]} б.</span>
-                </div>
-            `).join('');
-
-            let sortedOps = Object.keys(opRating).sort((a,b) => opRating[b].success - opRating[a].success);
-            document.getElementById("operator-rating-list").innerHTML = sortedOps.map(op => {
-                let pct = Math.round((opRating[op].success / opRating[op].total) * 100);
-                return `
-                    <div class="p-1.5 rounded border bg-zinc-950/40 border-zinc-850 flex justify-between items-center">
-                        <span class="font-bold text-zinc-200">👤 @${op}</span>
-                        <span class="font-mono text-zinc-400 text-4xs">${opRating[op].success}/${opRating[op].total} (${pct}%)</span>
-                    </div>
-                `;
-            }).join('');
-
-            let maxLostPhase = Object.keys(lostTimePhases).reduce((a, b) => lostTimePhases[a] > lostTimePhases[b] ? a : b);
-            document.getElementById("time-intensity-list").innerHTML = Object.keys(timePhases).map(phase => {
-                let isDangerous = (lostTimePhases[phase] > 0 && phase === maxLostPhase);
-                return `
-                    <div class="bg-zinc-950/40 p-1.5 rounded border ${isDangerous ? 'border-red-900/50 bg-red-950/5' : 'border-zinc-850'} flex justify-between items-center">
-                        <span class="${isDangerous ? 'text-red-400 font-bold' : 'text-zinc-300'}">${phase}</span>
-                        <span class="font-bold font-mono text-purple-400">${timePhases[phase]} вил.</span>
-                    </div>
-                `;
-            }).join('');
 
             document.getElementById("drone-batch-analytics").innerHTML = Object.keys(batchData).map(batch => {
                 let successRate = Math.round((batchData[batch].success / batchData[batch].total) * 100) || 0;
@@ -779,6 +700,7 @@
             `).join('');
         }
 
+        // ВИПРАВЛЕНО: СИНТАКСИС ТА ВЕРСТКУ ШАБЛОНІВ ДЛЯ ДИНАМІЧНОЇ ГЕНЕРАЦІЇ КАРТИНКИ
         function generateGraphicReport() {
             const template = document.getElementById("graphic-report-template");
             const contentBox = document.getElementById("graph-report-content");
