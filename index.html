@@ -29,7 +29,7 @@
         .tactical-matrix-table {
             table-layout: fixed;
             width: 100%;
-            min-width: 750px; /* Гарантує структуру у скролі на смартфонах */
+            min-width: 750px;
         }
         @media (max-width: 1024px) {
             .tactical-matrix-table th, .tactical-matrix-table td {
@@ -151,7 +151,6 @@
                     </div>
                     <div class="space-x-1 flex">
                         <button onclick="generateTextReport()" class="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 px-3 py-1.5 rounded text-3xs font-bold transition">📋 Рапорт</button>
-                        <button onclick="generateGraphicReport()" class="bg-emerald-900/40 border border-emerald-800 text-emerald-400 hover:bg-emerald-800 hover:text-white px-3 py-1.5 rounded text-3xs font-bold transition">🖼️ Інфографіка</button>
                     </div>
                 </div>
             </div>
@@ -217,6 +216,32 @@
 
     </div>
 
+    <div id="history-modal" class="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl max-w-5xl w-full p-6 max-h-[85vh] overflow-y-auto font-mono">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-3 mb-4">
+                <h2 class="text-xs font-bold text-purple-400 uppercase tracking-wider">📖 Редактор журналу тактичних рапортів</h2>
+                <button onclick="closeHistoryModal()" class="text-zinc-500 hover:text-white text-md font-bold">&times;</button>
+            </div>
+            <div class="overflow-x-auto w-full border border-zinc-850 rounded-lg">
+                <table class="w-full text-center text-4xs border-collapse">
+                    <thead class="bg-zinc-950 text-zinc-400 uppercase">
+                        <tr>
+                            <th class="p-2 border border-zinc-850">Дата/Час</th>
+                            <th class="p-2 border border-zinc-850">Підрозділ</th>
+                            <th class="p-2 border border-zinc-850">Екіпаж</th>
+                            <th class="p-2 border border-zinc-850">Ціль</th>
+                            <th class="p-2 border border-zinc-850">Засіб</th>
+                            <th class="p-2 border border-zinc-850">Статус</th>
+                            <th class="p-2 border border-zinc-850">Коментар</th>
+                            <th class="p-2 border border-zinc-850">Дія</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="divide-y divide-zinc-850"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbw_5esI19Ft9GwMOSKlso5Huvjrk_BP_dI3O8mn3134-adHRXnAUu9AHf6ssw6Gz-oo/exec"; 
         const EXCEL_DOWNLOAD_URL = "https://docs.google.com/spreadsheets/d/1WS1A6-cBjdY_OLSjZGeIjAOrZHXTJCM7wUNiPfXZo4hPID10dfQgJ6Ju7u4xGHn4/export?format=xlsx";
@@ -227,7 +252,7 @@
         let allHistoryRows = [];
         let cachedTotalsText = "";
         let activeOpenCrewId = null;
-        let globalMatrixSnapshot = null; // Зберігання зліпку для порівняння нових надходжень
+        let globalMatrixSnapshot = null; 
 
         let filterStartDateTime = null;
         let filterEndDateTime = null;
@@ -238,7 +263,6 @@
             document.getElementById('user-datetime').value = now.toISOString().slice(0, 16);
         };
 
-        // Функція синтезу мілітарі-звуку сповіщення через Web Audio API
         function playTacticalPing() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -246,7 +270,7 @@
                 const gainNode = audioCtx.createGain();
                 
                 oscillator.type = 'sine';
-                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Висока нота A5
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); 
                 oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3);
                 
                 gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
@@ -257,7 +281,7 @@
                 
                 oscillator.start();
                 oscillator.stop(audioCtx.currentTime + 0.3);
-            } catch (e) { console.log("Контекст звуку очікує взаємодії користувача."); }
+            } catch (e) { console.log("Контекст звуку очікує взаємодії."); }
         }
 
         function startTacticalAutoRefresh() {
@@ -273,7 +297,6 @@
                         const res = await resp.json();
                         const incomingHistory = res.history || [];
                         
-                        // Якщо кількість записів збільшилась — граємо звук
                         if (allHistoryRows.length > 0 && incomingHistory.length > allHistoryRows.length) {
                             playTacticalPing();
                         }
@@ -342,7 +365,13 @@
             if(!u || !p) return alert("Заповніть поля!");
 
             try {
-                await fetch(API_URL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "login", username: u, password: p }) });
+                const response = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "login", username: u, password: p }) });
+                const authRes = await response.json();
+                
+                if (authRes.status === "error") {
+                    return alert(authRes.message);
+                }
+
                 currentUserLog = u;
                 document.getElementById("auth-box").classList.add("hidden");
 
@@ -359,7 +388,7 @@
                     buildUserForm();
                     startTacticalAutoRefresh();
                 }
-            } catch (error) { alert("Помилка авторизації бази."); }
+            } catch (error) { alert("Помилка авторизації."); }
         }
 
         async function reloadConfigFromDatabase() {
@@ -446,13 +475,15 @@
             } catch(e) { console.log("Помилка завантаження статистики."); }
         }
 
+        // ГОЛОВНА ОНОВЛЕНА ФУНКЦІЯ ПАРСИНГУ ТА ОРГАНІЗАЦІЇ ДАНИХ
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             const mHead = document.getElementById("matrix-month-head");
             const mBody = document.getElementById("matrix-month-body");
             
-            let activeOperators = globalConfig.operators || ["Екіпаж Сокіл", "Екіпаж Грім"];
-            let activeTargets = globalConfig.targets || ["Танки", "ББМ", "ОВТ"];
+            // КРИТИЧНИЙ ФІКС 1: Перевірка довжини масиву, оскільки порожній масив [] є truthy
+            let activeOperators = (globalConfig.operators && globalConfig.operators.length > 0) ? globalConfig.operators : ["Екіпаж Сокіл", "Екіпаж Грім"];
+            let activeTargets = (globalConfig.targets && globalConfig.targets.length > 0) ? globalConfig.targets : ["Танки", "ББМ", "ОВТ"];
             let activeStatuses = ["Знищено", "Уражено"]; 
 
             const today = new Date();
@@ -480,8 +511,35 @@
             });
 
             allHistoryRows.forEach(row => {
-                let cleanDateStr = String(row.date).split("T")[0]; 
-                let rowDateTime = new Date(`${cleanDateStr}T${row.time}`);
+                if (!row.date) return;
+                
+                // КРИТИЧНИЙ ФІКС 2: Інтелектуальний парсер регіонального формату дат ДД.ММ.РРРР та РРРР-ММ-ДД
+                let cleanDateStr = String(row.date).split("T")[0].trim();
+                let year, month, day;
+
+                if (cleanDateStr.includes("-")) {
+                    let parts = cleanDateStr.split("-");
+                    year = parseInt(parts[0], 10);
+                    month = parseInt(parts[1], 10) - 1;
+                    day = parseInt(parts[2], 10);
+                } else if (cleanDateStr.includes(".")) {
+                    let parts = cleanDateStr.split(".");
+                    year = parseInt(parts[2], 10);
+                    month = parseInt(parts[1], 10) - 1;
+                    day = parseInt(parts[0], 10);
+                } else {
+                    return; 
+                }
+
+                let hour = 0, minute = 0;
+                if (row.time) {
+                    let timeParts = String(row.time).split(":");
+                    hour = parseInt(timeParts[0], 10) || 0;
+                    minute = parseInt(timeParts[1], 10) || 0;
+                }
+
+                let rowDateTime = new Date(year, month, day, hour, minute);
+                if (isNaN(rowDateTime.getTime())) return; 
                 
                 let normOp = activeOperators.find(o => o.toLowerCase() === String(row.operator).trim().toLowerCase());
                 let normStatus = activeStatuses.find(s => s.toLowerCase() === String(row.res).trim().toLowerCase());
@@ -496,6 +554,7 @@
                     crewStats[normOp][normStatus][targetName]++;
                 }
 
+                // Агрегація для матриці (враховує поточний рік, місяць та статуси "Знищено"/"Уражено")
                 if (normStatus && normTarget && rowDateTime.getFullYear() === currentYear && rowDateTime.getMonth() === currentMonth) {
                     let dayNum = rowDateTime.getDate();
                     if (dayNum >= 1 && dayNum <= daysInMonth) {
@@ -510,11 +569,10 @@
                 
                 for (let d = 1; d <= daysInMonth; d++) {
                     let count = monthMatrixData[target][d];
-                    
-                    // Перевірка на нове надходження для підсвічування червоною пульсацією
                     let cellClass = "text-zinc-700";
+                    
                     if (globalMatrixSnapshot && globalMatrixSnapshot[target] && count > globalMatrixSnapshot[target][d]) {
-                        cellClass = "animate-pulse-red font-black";
+                        cellClass = "animate-pulse-red font-black text-white";
                     } else if (count > 0) {
                         cellClass = "bg-green-950/20 text-green-400 font-black";
                     }
@@ -538,7 +596,6 @@
             });
             mBody.innerHTML = bodyHtml || "<tr><td class='p-3 text-center text-zinc-600' colspan='35'>Конфігурація цілей порожня.</td></tr>";
 
-            // Оновлюємо глобальний зліпок матриці для наступного циклу порівняння
             globalMatrixSnapshot = JSON.parse(JSON.stringify(monthMatrixData));
 
             cachedTotalsText = "📊 БОЙОВИЙ РАПОРТ УРАЖЕНИХ ЦІЛЕЙ\n--------------------------------------\n";
@@ -601,7 +658,49 @@
 
         async function openHistoryModal() {
             document.getElementById("history-modal").classList.remove("hidden");
+            const tbody = document.getElementById("history-table-body");
+            tbody.innerHTML = "<tr><td class='p-4 text-center text-zinc-500' colspan='8'>Синхронізація журналу...</td></tr>";
+            try {
+                const resp = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getHistory" }) });
+                const res = await resp.json(); allHistoryRows = res.history || []; tbody.innerHTML = "";
+
+                allHistoryRows.forEach(row => {
+                    let cleanDate = String(row.date).split("T")[0];
+                    tbody.innerHTML += `
+                        <tr class="hover:bg-zinc-900/50 transition text-center text-4xs">
+                            <td class="p-1 flex space-x-0.5 border border-zinc-850 justify-center">
+                                <input type="text" id="edit-date-${row.id}" value="${cleanDate}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-20 text-center focus:outline-none">
+                                <input type="text" id="edit-time-${row.id}" value="${row.time}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-10 text-center focus:outline-none">
+                            </td>
+                            <td class="p-1 border border-zinc-850 font-bold text-zinc-400">${row.user}</td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-operator-${row.id}" value="${row.operator}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24"></td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-target-${row.id}" value="${row.target}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24"></td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-weapon-${row.id}" value="${row.weapon || ''}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24"></td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-res-${row.id}" value="${row.res}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24"></td>
+                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-comm-${row.id}" value="${row.comm || ''}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-32"></td>
+                            <td class="p-1 border border-zinc-850"><button onclick="saveRowChange('${row.id}')" class="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded text-4xs font-bold transition">OK</button></td>
+                        </tr>
+                    `;
+                });
+            } catch(e) { tbody.innerHTML = "<tr><td class='p-4 text-center text-red-500' colspan='8'>Помилка завантаження.</td></tr>"; }
         }
+
+        async function saveRowChange(id) {
+            const data = {
+                action: "editHistoryRow", rowId: id,
+                date: document.getElementById(`edit-date-${id}`).value,
+                time: document.getElementById(`edit-time-${id}`).value,
+                operator: document.getElementById(`edit-operator-${id}`).value,
+                target: document.getElementById(`edit-target-${id}`).value,
+                weapon: document.getElementById(`edit-weapon-${id}`).value,
+                status: document.getElementById(`edit-res-${id}`).value,
+                comment: document.getElementById(`edit-comm-${id}`).value
+            };
+            await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(data) });
+            alert("Запис оновлено!"); fetchAndRenderAdminStats();
+        }
+
+        function closeHistoryModal() { document.getElementById("history-modal").classList.add("hidden"); }
 
         async function loadUsersList() {
             try {
