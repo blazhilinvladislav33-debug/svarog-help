@@ -87,6 +87,18 @@
             </div>
         </div>
 
+        <div class="grid grid-cols-1 gap-3 mb-4 font-mono">
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3.5 shadow-md">
+                <h3 class="text-4xs font-black uppercase text-green-400 mb-1.5 flex items-center gap-1.5">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-ping"></span>
+                    📢 [АКТУАЛЬНІ ДИРЕКТИВИ ТА СТАН СИТУАЦІЇ]
+                </h3>
+                <p class="text-3xs text-zinc-400 font-sans leading-relaxed">
+                    Усі бойові екіпажі успішно зведені в єдину мережу обліку КОРД. Дані з планшетів операторів оновлюються в режимі реального часу кожні 10 секунд у фоновому режимі. Натисніть на бойовий екіпаж нижче, щоб розгорнути його детальну статистику збиттів.
+                </p>
+            </div>
+        </div>
+
         <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
             <button onclick="toggleAccordion('acc-filter')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
                 <span>[+] ФОРМУВАННЯ ПЕРІОДИЧНИХ ТА СЕРЕДОВИХ ЗВІТІВ</span>
@@ -117,11 +129,30 @@
 
         <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
             <button onclick="toggleAccordion('acc-stats')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
-                <span>[─] СТРОГИЙ ГРАФІК УРАЖЕНЬ ТА ЗБИТТІВ ЗА БОЙОВИМИ ЕКІПАЖАМИ</span>
+                <span>[─] СТРОГИЙ ЖУРНАЛ СТАТИСТИКИ ЗБИТТІВ ЗА БОЙОВИМИ ЕКІПАЖАМИ</span>
                 <span id="acc-stats-icon">─</span>
             </button>
             <div id="acc-stats" class="accordion-content px-4 open">
                 <div id="stats-crews-wrapper" class="flex flex-col space-y-2 font-mono"></div>
+            </div>
+        </div>
+
+        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
+            <button onclick="toggleAccordion('acc-analytics')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
+                <span>[+] АНАЛІТИЧНІ ЦЕНТРИ: СЕРІЇ БОРТІВ ТА МАТЕРІАЛЬНЕ ЗАБЕЗПЕЧЕННЯ</span>
+                <span id="acc-analytics-icon">┼</span>
+            </button>
+            <div id="acc-analytics" class="accordion-content px-4">
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
+                        <h3 class="text-4xs font-black uppercase tracking-widest text-green-400 mb-2.5 border-b border-zinc-800 pb-1.5">// РОЗУМНИЙ АУДИТ ПАРТІЙ ТА СЕРІЙ БОРТІВ (СТІЙКІСТЬ / ККД)</h3>
+                        <div id="drone-batch-analytics" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-3xs font-mono"></div>
+                    </div>
+                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
+                        <h3 class="text-4xs font-black uppercase tracking-widest text-orange-400 mb-2.5 border-b border-zinc-800 pb-1.5">// СУМАРНИЙ РОЗХІД БОЄПРИПАСІВ (ДЛЯ СЛУЖБИ ОЗБРОЄННЯ)</h3>
+                        <div id="ammo-consumption-list" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-3xs font-mono"></div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -134,7 +165,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800 flex flex-col justify-between">
                         <div>
-                            <h3 class="text-4xs font-bold text-zinc-500 uppercase tracking-wider mb-2">// Додавання елементів у форми рапорту</h3>
+                            <h3 class="text-4xs font-bold text-zinc-500 uppercase tracking-wider mb-2">// Конструктор довідників</h3>
                             <select id="admin-opt-type" class="w-full p-2 mb-2 cmd-input rounded text-3xs text-white">
                                 <option value="operator">📋 Хто вражав (Бойовий Екіпаж)</option>
                                 <option value="target">🎯 Що уражали (Тип цілі)</option>
@@ -146,7 +177,7 @@
                         <button onclick="addDynamicOption()" class="w-full bg-purple-900 hover:bg-purple-800 text-white p-2 rounded text-3xs font-bold cursor-pointer transition">Додати пункт у базу</button>
                     </div>
                     <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
-                        <h3 class="text-4xs font-bold text-green-500 uppercase tracking-wider mb-2">// Черга підтвердження підрозділів</h3>
+                        <h3 class="text-4xs font-bold text-green-500 uppercase tracking-wider mb-2">// Cherha підтвердження підрозділів</h3>
                         <div class="overflow-y-auto max-h-40"><table class="w-full text-left text-3xs text-zinc-400"><tbody id="users-table-body"></tbody></table></div>
                     </div>
                     <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800 flex flex-col justify-between">
@@ -163,10 +194,10 @@
 
     <div id="graphic-report-template" class="fixed -left-9999 top-0 w-[450px] bg-zinc-950 p-6 font-mono text-white flex flex-col border-4 border-zinc-800 shadow-2xl">
         <div class="text-center border-b-2 border-zinc-800 pb-3 mb-4">
-            <h2 class="text-sm font-black tracking-widest text-red-500 uppercase">⚡ SVAROG TEAM // ІНФОГРАФІКА УРАЖЕНИХ ЗАСОБІВ</h2>
+            <h2 class="text-sm font-black tracking-widest text-red-500 uppercase">⚡ SVAROG TEAM // ІНФОГРАФІКА УРАЖЕНХ ЗАСОБІВ</h2>
             <p id="graph-report-date" class="text-4xs text-zinc-500 mt-1">ПЕРІОД ЗВІТНОСТІ</p>
         </div>
-        <div id="graph-report-content" class="space-y-3 text-2xs"></div>
+        <div id="graphic-report-content" class="space-y-4 text-2xs"></div>
         <div class="text-center border-t border-zinc-900 pt-4 mt-6 text-4xs text-zinc-600 tracking-wider uppercase">ДАНІ ЦИФРОВОГО ЖУРНАЛУ КОРД</div>
     </div>
 
@@ -197,6 +228,9 @@
     </div>
 
     <script>
+        const API_URL = "https://script.google.com/macros/s/AKfycbw_5esI19Ft9GwMOSKlso5Huvjrk_BP_dI3O8mn3134-adHRXnAUu9AHf6ssw6Gz-oo/exec"; 
+        const EXCEL_DOWNLOAD_URL = "https://docs.google.com/spreadsheets/d/1WS1A6-cBjdY_OLSjZGeIjAOrZHXTJCM7wUNiPfXZo4hPID10dfQgJ6Ju7u4xGHn4/export?format=xlsx";
+
         let isLoginMode = true; 
         let currentUserLog = "";
         let globalConfig = { operators: [], targets: [], weapons: [], statuses: [] };
@@ -207,7 +241,26 @@
         let filterStartDateTime = null;
         let filterEndDateTime = null;
 
-        // ФОНОВЕ АСИНХРОННЕ АВТООНОВЛЕННЯ КОЖНІ 10 СЕКУНД (НЕ БЛОКУЄ РАПОРТИ Й СКРОЛЛ)
+        window.onload = function() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('user-datetime').value = now.toISOString().slice(0, 16);
+            loadRebDirectiveLocal();
+        };
+
+        function loadRebDirectiveLocal() {
+            const saved = localStorage.getItem("current_reb_directive");
+            if (saved) document.getElementById("user-reb-text").innerText = saved;
+        }
+
+        function updateRebDirective() {
+            const text = document.getElementById("admin-reb-input").value.trim();
+            if(!text) return alert("Введіть зведення РЕБ!");
+            localStorage.setItem("current_reb_directive", text);
+            alert("📡 Оновлено! Директива РЕБ розіслана на планшети екіпажів.");
+            loadRebDirectiveLocal();
+        }
+
         function startTacticalAutoRefresh() {
             setInterval(async () => {
                 if (currentUserLog === "") return;
@@ -223,6 +276,8 @@
                         
                         renderFilteredStatistics();
                         loadUsersList();
+                    } else {
+                        calculateUserShiftEfficiency();
                     }
                 } catch (e) { console.log("Фоновий канал зв'язку очікує пакетів..."); }
             }, 10000);
@@ -390,12 +445,13 @@
             } catch(e) { console.log("Помилка завантаження статистики."); }
         }
 
-        // СУВОРИЙ ОБЛІК: У ЗВІТ І СТАТИСТИКУ ВКЛЮЧАЮТЬСЯ ТІЛЬКИ СТАТУСИ ЗНИЩЕНО ТА УРАЖЕНО
+        let globalCrewAggregations = {};
+
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             
             let activeOperators = globalConfig.operators || ["Екіпаж Сокіл", "Екіпаж Грім"];
-            let activeStatuses = ["Знищено", "Уражено"]; // Суворий фільтр звітності
+            let activeStatuses = ["Знищено", "Уражено"]; 
 
             let crewStats = {};
             activeOperators.forEach(op => {
@@ -464,7 +520,7 @@
                         <div onclick="toggleCrewStatisticsAccordion('${crewContentId}')" class="crew-trigger p-3 flex justify-between items-center cursor-pointer select-none bg-zinc-900/80 border-b border-zinc-850">
                             <div class="flex items-center space-x-2.5">
                                 <span class="text-xs font-bold text-zinc-100 uppercase tracking-wider">⚔️ ${crew}</span>
-                                <span class="text-4xs px-1.5 py-0.5 bg-green-950/40 text-green-400 rounded border border-green-900/30 font-sans font-bold">Разом уражено: ${successCount}</span>
+                                <span class="text-4xs px-1.5 py-0.5 bg-green- green-950/40 text-green-400 rounded border border-green-900/30 font-sans font-bold">Разом уражено: ${successCount}</span>
                             </div>
                             <span id="${crewContentId}-icon" class="text-zinc-500 font-bold font-mono text-xs">${iconIndicator}</span>
                         </div>
@@ -480,7 +536,7 @@
             wrapper.innerHTML = htmlBuffer || "<div class='text-center text-zinc-600 py-6 font-sans text-3xs'>Уражених чи знищених засобів за обраний період не виявлено.</div>";
         }
 
-        // ІНФОГРАФІКА УРАЖЕНИХ ЗАСОБІВ
+        // ПОВНІСТЮ ВИПРАВЛЕНО ШАБЛОННІ РЯДКИ ТА ЗВОРՈТНІ ЛАПКИ ГЕНЕРАТОРА ІНФОГРАФІКИ
         function generateGraphicReport() {
             const template = document.getElementById("graphic-report-template");
             const contentBox = document.getElementById("graph-report-content");
@@ -583,7 +639,6 @@
 
         function closeHistoryModal() { document.getElementById("history-modal").classList.add("hidden"); }
 
-        // МЕНЮ ПІДТВЕРДЖЕННЯ ТА ЗМІНИ ПАРОЛІВ КОРИСТУВАЧІВ ТА ГОЛОВНОГО АДМІНІСТРАТОРА
         async function loadUsersList() {
             try {
                 const response = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getUsers" }) });
@@ -594,7 +649,6 @@
 
                 res.users.forEach(user => {
                     if (user.role === "admin" || user.username.toLowerCase() === "admin") {
-                        // Таблиця зміни пароля для адміністраторів/користувачів
                         abody.innerHTML += `
                             <tr class="border-b border-zinc-800">
                                 <td class="p-1 text-zinc-300 font-bold">@${user.username}</td>
