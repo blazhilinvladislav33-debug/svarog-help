@@ -84,7 +84,7 @@
             <h1 class="text-sm font-black tracking-widest text-zinc-100 uppercase">SYS_COMMAND_HUD [MAIN_ADMIN_PANEL]</h1>
             <div class="space-x-2">
                 <button onclick="openHistoryModal()" class="bg-zinc-800 border border-zinc-700 hover:bg-purple-900/40 hover:text-purple-400 text-zinc-200 px-4 py-2 rounded text-2xs font-bold uppercase tracking-wider transition">📖 Редактор журналу</button>
-                <button onclick="location.reload()" class="bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 px-3 py-2 rounded text-2xs cursor-pointer transition">&times; EXIT</button>
+                <button onclick="location.reload()" class="bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 px-3 py-2 rounded text-2xs cursor-pointer transition" title="Panic Button">&times; EXIT</button>
             </div>
         </div>
 
@@ -95,7 +95,7 @@
                     📢 [АКТУАЛЬНІ ДИРЕКТИВИ ТА СТАН СИТУАЦІЇ]
                 </h3>
                 <p class="text-3xs text-zinc-400 font-mono leading-relaxed">
-                    Усі бойові екіпажі зведені в єдину мережу обліку. Дані з планшетів оновлюються автоматично кожні 10 секунд без переривання роботи операторів. Натисніть на бойовий екіпаж нижче, щоб розгорнути суворий облік знищених та уражених засобів.
+                    Усі бойові екіпажі зведені в єдину мережу обліку. Дані з планшетів оновлюються автоматично кожні 10 секунд у фоновому режимі без переривання роботи операторів. Натисніть на бойовий екіпаж нижче, щоб розгорнути його детальну статистику збиттів.
                 </p>
             </div>
 
@@ -166,7 +166,7 @@
 
     <div id="graphic-report-template" class="fixed -left-9999 top-0 w-[450px] bg-zinc-950 p-6 font-mono text-white flex flex-col border-4 border-zinc-800 shadow-2xl">
         <div class="text-center border-b-2 border-zinc-800 pb-3 mb-4">
-            <h2 class="text-sm font-black tracking-widest text-red-500 uppercase">⚡ SVAROG TEAM // ІНФОГРАФІКА УРАЖЕНИХ ЗАСОБІВ</h2>
+            <h2 class="text-sm font-black tracking-widest text-red-500 uppercase">⚡ SVAROG TEAM // ІНФОГРАФІКА УРАЖЕНХ ЗАСОБІВ</h2>
             <p id="graph-report-date" class="text-4xs text-zinc-500 mt-1">ПЕРІОД ЗВІТНОСТІ</p>
         </div>
         <div id="graphic-report-content" class="space-y-4 text-2xs"></div>
@@ -233,7 +233,6 @@
             loadRebDirectiveLocal();
         }
 
-        // ФОНОВЕ АВТООНОВЛЕННЯ КОЖНІ 10 СЕКУНД (ПОВНІСТЮ ОЧИЩЕНЕ ВІД ЗАЙВИХ АНАЛІТИК)
         function startTacticalAutoRefresh() {
             setInterval(async () => {
                 if (currentUserLog === "") return;
@@ -418,7 +417,6 @@
 
         let globalCrewAggregations = {};
 
-        // ОПТИМІЗОВАНИЙ СУВОРОВИЙ РЕНДЕР: ВКЛЮЧАЄ ВИКЛЮЧНО ТИПИ ЗНИЩЕНО ТА УРАЖЕНО ДЛЯ ЕКІПАЖІВ
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             
