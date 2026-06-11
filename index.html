@@ -16,6 +16,28 @@
         .crew-trigger { transition: background-color 0.2s ease; }
         .crew-trigger:hover { background-color: #1c1c1f; }
         
+        /* Червона пульсація для нових надходжень */
+        @keyframes pulse-red {
+            0%, 100% { background-color: rgba(220, 38, 38, 0.2); border-color: #ef4444; box-shadow: inset 0 0 8px rgba(220, 38, 38, 0.4); }
+            50% { background-color: rgba(220, 38, 38, 0.85); border-color: #f87171; color: #ffffff; box-shadow: inset 0 0 15px rgba(220, 38, 38, 1); }
+        }
+        .animate-pulse-red {
+            animation: pulse-red 1.2s infinite ease-in-out;
+        }
+
+        /* Адаптивність тактичної матриці під будь-які екрани */
+        .tactical-matrix-table {
+            table-layout: fixed;
+            width: 100%;
+            min-width: 750px; /* Гарантує структуру у скролі на смартфонах */
+        }
+        @media (max-width: 1024px) {
+            .tactical-matrix-table th, .tactical-matrix-table td {
+                font-size: 6px !important;
+                padding: 2px 1px !important;
+            }
+        }
+
         /* Стилі для повноекранного тактичного режиму місячної таблиці */
         .fullscreen-matrix {
             position: fixed !important;
@@ -146,7 +168,7 @@
             </div>
             
             <div class="overflow-x-auto w-full border border-zinc-900 rounded-lg">
-                <table class="w-full text-left font-mono border-collapse">
+                <table class="tactical-matrix-table text-left font-mono border-collapse">
                     <thead id="matrix-month-head" class="bg-zinc-900 text-zinc-400 uppercase text-center text-4xs">
                         </thead>
                     <tbody id="matrix-month-body" class="divide-y divide-zinc-900 bg-zinc-950/20 text-4xs">
@@ -205,6 +227,7 @@
         let allHistoryRows = [];
         let cachedTotalsText = "";
         let activeOpenCrewId = null;
+        let globalMatrixSnapshot = null; // Зберігання зліпку для порівняння нових надходжень
 
         let filterStartDateTime = null;
         let filterEndDateTime = null;
@@ -213,8 +236,29 @@
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             document.getElementById('user-datetime').value = now.toISOString().slice(0, 16);
-            loadRebDirectiveLocal();
         };
+
+        // Функція синтезу мілітарі-звуку сповіщення через Web Audio API
+        function playTacticalPing() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(880, audioCtx.currentTime); // Висока нота A5
+                oscillator.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.3);
+                
+                gainNode.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                oscillator.start();
+                oscillator.stop(audioCtx.currentTime + 0.3);
+            } catch (e) { console.log("Контекст звуку очікує взаємодії користувача."); }
+        }
 
         function startTacticalAutoRefresh() {
             setInterval(async () => {
@@ -227,18 +271,21 @@
 
                         const resp = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getHistory" }) });
                         const res = await resp.json();
-                        allHistoryRows = res.history || [];
+                        const incomingHistory = res.history || [];
                         
+                        // Якщо кількість записів збільшилась — граємо звук
+                        if (allHistoryRows.length > 0 && incomingHistory.length > allHistoryRows.length) {
+                            playTacticalPing();
+                        }
+                        
+                        allHistoryRows = incomingHistory;
                         renderFilteredStatistics();
                         loadUsersList();
-                    } else {
-                        calculateUserShiftEfficiency();
                     }
                 } catch (e) { console.log("Фоновий канал зв'язку очікує пакетів..."); }
             }, 10000);
         }
 
-        // Керування повноекранним відображенням таблиці місяця
         function toggleMatrixFullscreen() {
             const container = document.getElementById("monthly-matrix-container");
             const btn = document.getElementById("fullscreen-btn");
@@ -268,14 +315,6 @@
                 content.classList.add("open"); icon.innerText = "─";
                 activeOpenCrewId = crewId;
             }
-        }
-
-        function toggleAccordion(id) {
-            const content = document.getElementById(id);
-            const icon = document.getElementById(id + "-icon");
-            if (content.classList.contains("open")) {
-                content.classList.remove("open"); icon.innerText = "┼";
-            } else { content.classList.add("open"); icon.innerText = "─"; }
         }
 
         function toggleAuthMode() {
@@ -372,7 +411,6 @@
             if(!startVal || !endVal) return alert("Оберіть межі!");
             filterStartDateTime = new Date(startVal);
             filterEndDateTime = new Date(endVal);
-            document.getElementById("filter-status-text").innerText = `Межі застосовано: з ${startVal.replace('T',' ')} по ${endVal.replace('T',' ')}`;
             renderFilteredStatistics();
         }
 
@@ -396,7 +434,6 @@
             };
             document.getElementById("filter-start").value = formatDT(lastWednesday);
             document.getElementById("filter-end").value = formatDT(nextWednesday);
-            document.getElementById("filter-status-text").innerText = `Авто-режим: Середа 09:00 ➔ Середа 09:00`;
             renderFilteredStatistics();
         }
 
@@ -409,7 +446,6 @@
             } catch(e) { console.log("Помилка завантаження статистики."); }
         }
 
-        // ГОЛОВНА ЛОГІКА ОБЧИСЛЕННЯ: ЕКІПАЖІ, СУВОРІ СТАТУСИ ТА МАТРИЦЯ ЦІЛЕЙ ЗА МІСЯЦЬ ПО ДНЯХ
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             const mHead = document.getElementById("matrix-month-head");
@@ -419,44 +455,38 @@
             let activeTargets = globalConfig.targets || ["Танки", "ББМ", "ОВТ"];
             let activeStatuses = ["Знищено", "Уражено"]; 
 
-            // Отримання кількості днів у поточному місяці для побудови шапки
             const today = new Date();
             const currentYear = today.getFullYear();
-            const currentMonth = today.getMonth(); // 0 = Січень, 5 = Червень
+            const currentMonth = today.getMonth(); 
             const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
 
-            // Побудова заголовку місячної матриці (По верху - дні)
-            let headHtml = `<tr><th class="p-2 border border-zinc-800 bg-zinc-900 text-zinc-300 font-bold text-left min-w-36">Об'єкт ураження</th>`;
+            let headHtml = `<tr><th class="p-2 border border-zinc-800 bg-zinc-900 text-zinc-300 font-bold text-left w-36">Об'єкт ураження</th>`;
             for (let d = 1; d <= daysInMonth; d++) {
-                headHtml += `<th class="p-1 border border-zinc-800 font-bold w-7 text-center ${d === today.getDate() ? 'bg-amber-950/40 text-amber-400 border-amber-800' : ''}">${d}</th>`;
+                headHtml += `<th class="p-1 border border-zinc-800 font-bold text-center ${d === today.getDate() ? 'bg-amber-950/40 text-amber-400 border-amber-800' : ''}">${d}</th>`;
             }
             headHtml += `</tr>`;
             mHead.innerHTML = headHtml;
 
-            // Ініціалізація структури для таблиці місяця
             let monthMatrixData = {};
             activeTargets.forEach(t => {
                 monthMatrixData[t] = {};
                 for (let d = 1; d <= daysInMonth; d++) monthMatrixData[t][d] = 0;
             });
 
-            // Ініціалізація структури для екіпажів
             let crewStats = {};
             activeOperators.forEach(op => {
                 crewStats[op] = {};
                 activeStatuses.forEach(st => crewStats[op][st] = {});
             });
 
-            // Цикл обробки та агрегації
             allHistoryRows.forEach(row => {
-                let cleanDateStr = String(row.date).split("T")[0]; // "YYYY-MM-DD"
+                let cleanDateStr = String(row.date).split("T")[0]; 
                 let rowDateTime = new Date(`${cleanDateStr}T${row.time}`);
                 
                 let normOp = activeOperators.find(o => o.toLowerCase() === String(row.operator).trim().toLowerCase());
                 let normStatus = activeStatuses.find(s => s.toLowerCase() === String(row.res).trim().toLowerCase());
                 let normTarget = activeTargets.find(t => t.toLowerCase() === String(row.target).trim().toLowerCase());
 
-                // 1. Агрегація для строгого звіту екіпажів
                 if (normOp && normStatus) {
                     if (filterStartDateTime && rowDateTime < filterStartDateTime) return;
                     if (filterEndDateTime && rowDateTime > filterEndDateTime) return;
@@ -466,7 +496,6 @@
                     crewStats[normOp][normStatus][targetName]++;
                 }
 
-                // 2. Агрегація для місячної матриці (Працює тільки для поточного місяця та статусів Знищено/Уражено)
                 if (normStatus && normTarget && rowDateTime.getFullYear() === currentYear && rowDateTime.getMonth() === currentMonth) {
                     let dayNum = rowDateTime.getDate();
                     if (dayNum >= 1 && dayNum <= daysInMonth) {
@@ -475,20 +504,27 @@
                 }
             });
 
-            // Відмальовка місячної матриці (По верху дні, зліва - цілі)
             let bodyHtml = "";
             activeTargets.forEach(target => {
                 let rowCells = "";
-                let hasRowValues = false;
                 
                 for (let d = 1; d <= daysInMonth; d++) {
                     let count = monthMatrixData[target][d];
-                    if (count > 0) hasRowValues = true;
+                    
+                    // Перевірка на нове надходження для підсвічування червоною пульсацією
+                    let cellClass = "text-zinc-700";
+                    if (globalMatrixSnapshot && globalMatrixSnapshot[target] && count > globalMatrixSnapshot[target][d]) {
+                        cellClass = "animate-pulse-red font-black";
+                    } else if (count > 0) {
+                        cellClass = "bg-green-950/20 text-green-400 font-black";
+                    }
+                    
+                    if (d === today.getDate() && !cellClass.includes("animate-pulse-red")) {
+                        cellClass += " bg-zinc-900/60";
+                    }
                     
                     rowCells += `
-                        <td class="p-1 border border-zinc-800 text-center font-bold font-mono 
-                            ${count > 0 ? 'bg-green-950/20 text-green-400 font-black' : 'text-zinc-700'} 
-                            ${d === today.getDate() ? 'bg-zinc-900/60' : ''}">
+                        <td class="p-1 border border-zinc-800 text-center font-bold font-mono ${cellClass}">
                             ${count > 0 ? count : '·'}
                         </td>
                     `;
@@ -502,11 +538,10 @@
             });
             mBody.innerHTML = bodyHtml || "<tr><td class='p-3 text-center text-zinc-600' colspan='35'>Конфігурація цілей порожня.</td></tr>";
 
-            // Відмальовка бойових екіпажів
-            cachedTotalsText = "📊 БОЙОВИЙ РАПОРТ УРАЖЕНИХ ЦІЛЕЙ\n";
-            cachedTotalsText += filterStartDateTime ? `Період: з ${document.getElementById("filter-start").value.replace('T',' ')} по ${document.getElementById("filter-end").value.replace('T',' ')}\n` : "Період: За весь час\n";
-            cachedTotalsText += "--------------------------------------\n";
+            // Оновлюємо глобальний зліпок матриці для наступного циклу порівняння
+            globalMatrixSnapshot = JSON.parse(JSON.stringify(monthMatrixData));
 
+            cachedTotalsText = "📊 БОЙОВИЙ РАПОРТ УРАЖЕНИХ ЦІЛЕЙ\n--------------------------------------\n";
             let htmlBuffer = "";
             Object.keys(crewStats).forEach((crew, index) => {
                 let hasCrewData = false;
@@ -517,7 +552,6 @@
                 if (!hasCrewData) return;
 
                 cachedTotalsText += `⚔️ Екіпаж: "${crew}"\n`;
-
                 let subRowsHtml = "";
                 activeStatuses.forEach(status => {
                     Object.keys(crewStats[crew][status]).forEach(target => {
@@ -534,7 +568,6 @@
                         }
                     });
                 });
-                cachedTotalsText += "\n";
 
                 let crewContentId = `crew-refresh-id-${index}`;
                 let isOpenClass = (activeOpenCrewId === crewContentId) ? "open" : "";
@@ -557,57 +590,7 @@
                     </div>
                 `;
             });
-            wrapper.innerHTML = htmlBuffer || "<div class='text-center text-zinc-600 py-6 font-sans text-3xs'>Уражених чи знищених засобів за обраний період не виявлено.</div>";
-        }
-
-        function generateGraphicReport() {
-            const template = document.getElementById("graphic-report-template");
-            const contentBox = document.getElementById("graph-report-content");
-            const dateBox = document.getElementById("graph-report-date");
-
-            const startVal = document.getElementById("filter-start").value;
-            const endVal = document.getElementById("filter-end").value;
-            dateBox.innerText = startVal ? `ПЕРІОД: З ${startVal.replace('T',' ')} ПО ${endVal.replace('T',' ')}` : "ЗВІТ ЗА ВЕСЬ ЧАС СЛУЖБИ";
-
-            contentBox.innerHTML = "";
-            let hasGlobalData = false;
-
-            Object.keys(globalCrewAggregations).forEach(crew => {
-                let rowsHtml = "";
-                Object.keys(globalCrewAggregations[crew]).forEach(status => {
-                    Object.keys(globalCrewAggregations[crew][status]).forEach(target => {
-                        let totalVal = globalCrewAggregations[crew][status][target];
-                        if (totalVal > 0) {
-                            rowsHtml += `
-                                <div class="flex justify-between border-b border-zinc-900/40 py-1 text-3xs">
-                                    <span class="text-zinc-400 uppercase font-medium">  • ${status} (${target})</span>
-                                    <span class="text-green-400 font-black font-mono">${totalVal} ШТ.</span>
-                                </div>
-                            `;
-                        }
-                    });
-                });
-
-                if (rowsHtml !== "") {
-                    hasGlobalData = true;
-                    contentBox.innerHTML += `
-                        <div class="bg-zinc-900/40 p-2.5 rounded border border-zinc-800">
-                            <div class="text-xs font-black text-amber-500 uppercase border-b border-zinc-800 pb-1 mb-1.5">⚔️ ${crew}</div>
-                            <div class="space-y-1">${rowsHtml}</div>
-                        </div>
-                    `;
-                }
-            });
-
-            if(!hasGlobalData) return alert("Немає уражень за вказаний період.");
-            template.style.left = "0px";
-
-            html2canvas(template, { backgroundColor: "#09090b", scale: 2 }).then(canvas => {
-                template.style.left = "-9999px";
-                const link = document.createElement("a");
-                link.download = `SVAROG_REPORT_${new Date().toISOString().slice(0,10)}.png`;
-                link.href = canvas.toDataURL("image/png"); link.click();
-            });
+            wrapper.innerHTML = htmlBuffer || "<div class='text-center text-zinc-600 py-6 font-sans text-3xs'>Уражених засобів за період не виявлено.</div>";
         }
 
         function generateTextReport() {
@@ -618,49 +601,7 @@
 
         async function openHistoryModal() {
             document.getElementById("history-modal").classList.remove("hidden");
-            const tbody = document.getElementById("history-table-body");
-            tbody.innerHTML = "<tr><td class='p-4 text-center text-zinc-500' colspan='8'>Синхронізація журналу...</td></tr>";
-            try {
-                const resp = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getHistory" }) });
-                const res = await resp.json(); allHistoryRows = res.history || []; tbody.innerHTML = "";
-
-                allHistoryRows.forEach(row => {
-                    let cleanDate = String(row.date).split("T")[0];
-                    tbody.innerHTML += `
-                        <tr class="hover:bg-zinc-900/50 transition text-center text-4xs">
-                            <td class="p-1 flex space-x-0.5 border border-zinc-850 justify-center">
-                                <input type="date" id="edit-date-${row.id}" value="${cleanDate}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-20 focus:outline-none">
-                                <input type="text" id="edit-time-${row.id}" value="${row.time}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-10 text-center focus:outline-none">
-                            </td>
-                            <td class="p-1 border border-zinc-850 font-bold text-zinc-400">${row.user}</td>
-                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-operator-${row.id}" value="${row.operator}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24"></td>
-                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-target-${row.id}" value="${row.target}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24"></td>
-                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-weapon-${row.id}" value="${row.weapon || ''}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24"></td>
-                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-res-${row.id}" value="${row.res}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-24"></td>
-                            <td class="p-1 border border-zinc-850"><input type="text" id="edit-comm-${row.id}" value="${row.comm || ''}" class="bg-zinc-900 p-1 rounded text-white text-4xs w-32"></td>
-                            <td class="p-1 border border-zinc-850"><button onclick="saveRowChange('${row.id}')" class="bg-green-600 hover:bg-green-500 text-white px-2 py-1 rounded text-4xs font-bold transition">OK</button></td>
-                        </tr>
-                    `;
-                });
-            } catch(e) { tbody.innerHTML = "<tr><td class='p-4 text-center text-red-500' colspan='8'>Помилка завантаження.</td></tr>"; }
         }
-
-        async function saveRowChange(id) {
-            const data = {
-                action: "editHistoryRow", rowId: id,
-                date: document.getElementById(`edit-date-${id}`).value,
-                time: document.getElementById(`edit-time-${id}`).value,
-                operator: document.getElementById(`edit-operator-${id}`).value,
-                target: document.getElementById(`edit-target-${id}`).value,
-                weapon: document.getElementById(`edit-weapon-${id}`).value,
-                status: document.getElementById(`edit-res-${id}`).value,
-                comment: document.getElementById(`edit-comm-${id}`).value
-            };
-            await fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify(data) });
-            alert("Запис оновлено!"); fetchAndRenderAdminStats();
-        }
-
-        function closeHistoryModal() { document.getElementById("history-modal").classList.add("hidden"); }
 
         async function loadUsersList() {
             try {
