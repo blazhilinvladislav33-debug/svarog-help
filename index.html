@@ -15,6 +15,18 @@
         .cmd-input:focus { border-color: #22c55e; outline: none; }
         .crew-trigger { transition: background-color 0.2s ease; }
         .crew-trigger:hover { background-color: #1c1c1f; }
+        
+        /* Стилі для повноекранного тактичного режиму місячної таблиці */
+        .fullscreen-matrix {
+            position: fixed !important;
+            top: 0 !important; left: 0 !important;
+            width: 100vw !important; height: 100vh !important;
+            z-index: 9999 !important;
+            background-color: #09090b !important;
+            padding: 1.5rem !important;
+            overflow: auto !important;
+        }
+
         ::-webkit-scrollbar { width: 4px; height: 4px; }
         ::-webkit-scrollbar-track { background: #09090b; }
         ::-webkit-scrollbar-thumb { background: #27272a; border-radius: 2px; }
@@ -84,7 +96,7 @@
             <h1 class="text-sm font-black tracking-widest text-zinc-100 uppercase">SYS_COMMAND_HUD [MAIN_ADMIN_PANEL]</h1>
             <div class="space-x-2">
                 <button onclick="openHistoryModal()" class="bg-zinc-800 border border-zinc-700 hover:bg-purple-900/40 hover:text-purple-400 text-zinc-200 px-4 py-2 rounded text-2xs font-bold uppercase tracking-wider transition">📖 Редактор журналу</button>
-                <button onclick="location.reload()" class="bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 px-3 py-2 rounded text-2xs cursor-pointer transition" title="Panic Button">&times; EXIT</button>
+                <button onclick="location.reload()" class="bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 px-3 py-2 rounded text-2xs cursor-pointer transition">&times; EXIT</button>
             </div>
         </div>
 
@@ -95,7 +107,7 @@
                     📢 [АКТУАЛЬНІ ДИРЕКТИВИ ТА СТАН СИТУАЦІЇ]
                 </h3>
                 <p class="text-3xs text-zinc-400 font-mono leading-relaxed">
-                    Усі бойові екіпажі зведені в єдину мережу обліку. Дані з планшетів оновлюються автоматично кожні 10 секунд у фоновому режимі без переривання роботи операторів. Натисніть на бойовий екіпаж нижче, щоб розгорнути його детальну статистику збиттів.
+                    Дані з планшетів операторів оновлюються автоматично кожні 10 секунд у фоновому режимі без переривання роботи. Нижче сформовано тактичну матрицю уражених засобів за поточний місяць по днях.
                 </p>
             </div>
 
@@ -123,10 +135,29 @@
             </div>
         </div>
 
+        <div id="monthly-matrix-container" class="border border-zinc-800 rounded-xl bg-zinc-950/70 p-4 mb-4 shadow-2xl transition-all duration-300">
+            <div class="flex justify-between items-center border-b border-zinc-800 pb-2.5 mb-3">
+                <h3 class="text-2xs font-black text-amber-400 font-mono tracking-widest uppercase flex items-center gap-2">
+                    📊 МАТРИЦЯ ПОТОЧНОГО МІСЯЦЯ: ОБЛІК ЗНИЩЕННЯ ТА УРАЖЕННЯ ЦІЛЕЙ ЗА ДНЯМИ
+                </h3>
+                <button onclick="toggleMatrixFullscreen()" id="fullscreen-btn" class="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-zinc-300 hover:text-white font-mono font-bold text-4xs px-3 py-1.5 rounded uppercase tracking-wider transition">
+                    🖥️ Розгорнути матрицю на весь екран
+                </button>
+            </div>
+            
+            <div class="overflow-x-auto w-full border border-zinc-900 rounded-lg">
+                <table class="w-full text-left font-mono border-collapse">
+                    <thead id="matrix-month-head" class="bg-zinc-900 text-zinc-400 uppercase text-center text-4xs">
+                        </thead>
+                    <tbody id="matrix-month-body" class="divide-y divide-zinc-900 bg-zinc-950/20 text-4xs">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+
         <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-4 shadow-inner p-4">
-            <div class="border-b border-zinc-800 pb-2 mb-3 flex justify-between items-center font-mono">
-                <span class="text-2xs font-black text-zinc-400 uppercase tracking-widest">[─] СТРОГИЙ ЖУРНАЛ СТАТИСТИКИ ЗБИТТІВ ЗА БОЙОВИМИ ЕКІПАЖАМИ</span>
-                <span id="filter-status-text" class="text-green-500 text-3xs">Повний масив даних</span>
+            <div class="border-b border-zinc-800 pb-2 mb-3">
+                <span class="text-2xs font-black text-zinc-400 uppercase tracking-widest font-mono">[─] СТРОГИЙ ЖУРНАЛ СТАТИСТИКИ ЗБИТТІВ ЗА БОЙОВИМИ ЕКІПАЖАМИ</span>
             </div>
             <div id="stats-crews-wrapper" class="flex flex-col space-y-2 font-mono"></div>
         </div>
@@ -164,41 +195,6 @@
 
     </div>
 
-    <div id="graphic-report-template" class="fixed -left-9999 top-0 w-[450px] bg-zinc-950 p-6 font-mono text-white flex flex-col border-4 border-zinc-800 shadow-2xl">
-        <div class="text-center border-b-2 border-zinc-800 pb-3 mb-4">
-            <h2 class="text-sm font-black tracking-widest text-red-500 uppercase">⚡ SVAROG TEAM // ІНФОГРАФІКА УРАЖЕНХ ЗАСОБІВ</h2>
-            <p id="graph-report-date" class="text-4xs text-zinc-500 mt-1">ПЕРІОД ЗВІТНОСТІ</p>
-        </div>
-        <div id="graphic-report-content" class="space-y-4 text-2xs"></div>
-        <div class="text-center border-t border-zinc-900 pt-4 mt-6 text-4xs text-zinc-600 tracking-wider uppercase">ДАНІ ЦИФРОВОГО ЖУРНАЛУ КОРД</div>
-    </div>
-
-    <div id="history-modal" class="fixed inset-0 bg-black/90 flex items-center justify-center p-3 hidden z-50">
-        <div class="bg-zinc-950 border border-zinc-800 rounded-xl max-w-6xl w-full p-4 max-h-[90vh] flex flex-col font-mono">
-            <div class="flex justify-between items-center mb-3 pb-2 border-b border-zinc-800">
-                <h3 class="text-xs font-bold text-white uppercase tracking-widest">// КОРЕКТУВАННЯ ТАКТИЧНИХ ЗАПИСІВ ЖУРНАЛУ</h3>
-                <button onclick="closeHistoryModal()" class="text-zinc-500 hover:text-white font-bold text-lg cursor-pointer">&times;</button>
-            </div>
-            <div class="overflow-x-auto overflow-y-auto flex-1">
-                <table class="w-full text-left text-4xs border border-zinc-900">
-                    <thead class="bg-zinc-900 text-zinc-300 sticky top-0 uppercase text-center">
-                        <tr>
-                            <th class="p-2 border border-zinc-800">Дата/Час</th>
-                            <th class="p-2 border border-zinc-800">Підрозділ</th>
-                            <th class="p-2 border border-zinc-800">Хто вражав</th>
-                            <th class="p-2 border border-zinc-800">Що уражали</th>
-                            <th class="p-2 border border-zinc-800">Засіб</th>
-                            <th class="p-2 border border-zinc-800">Результат</th>
-                            <th class="p-2 border border-zinc-800">Коментар</th>
-                            <th class="p-2 border border-zinc-800">Дія</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-table-body" class="divide-y divide-zinc-900"></tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbw_5esI19Ft9GwMOSKlso5Huvjrk_BP_dI3O8mn3134-adHRXnAUu9AHf6ssw6Gz-oo/exec"; 
         const EXCEL_DOWNLOAD_URL = "https://docs.google.com/spreadsheets/d/1WS1A6-cBjdY_OLSjZGeIjAOrZHXTJCM7wUNiPfXZo4hPID10dfQgJ6Ju7u4xGHn4/export?format=xlsx";
@@ -220,19 +216,6 @@
             loadRebDirectiveLocal();
         };
 
-        function loadRebDirectiveLocal() {
-            const saved = localStorage.getItem("current_reb_directive");
-            if (saved) document.getElementById("user-reb-text").innerText = saved;
-        }
-
-        function updateRebDirective() {
-            const text = document.getElementById("admin-reb-input").value.trim();
-            if(!text) return alert("Введіть зведення РЕБ!");
-            localStorage.setItem("current_reb_directive", text);
-            alert("📡 Оновлено! Директива РЕБ розіслана на планшети екіпажів.");
-            loadRebDirectiveLocal();
-        }
-
         function startTacticalAutoRefresh() {
             setInterval(async () => {
                 if (currentUserLog === "") return;
@@ -248,9 +231,25 @@
                         
                         renderFilteredStatistics();
                         loadUsersList();
+                    } else {
+                        calculateUserShiftEfficiency();
                     }
                 } catch (e) { console.log("Фоновий канал зв'язку очікує пакетів..."); }
             }, 10000);
+        }
+
+        // Керування повноекранним відображенням таблиці місяця
+        function toggleMatrixFullscreen() {
+            const container = document.getElementById("monthly-matrix-container");
+            const btn = document.getElementById("fullscreen-btn");
+            
+            if (container.classList.contains("fullscreen-matrix")) {
+                container.classList.remove("fullscreen-matrix");
+                btn.innerText = "🖥️ Розгорнути матрицю на весь екран";
+            } else {
+                container.classList.add("fullscreen-matrix");
+                btn.innerText = "❌ Згорнути у звичайний режим";
+            }
         }
 
         function toggleCrewStatisticsAccordion(crewId) {
@@ -328,11 +327,6 @@
             const configResp = await fetch(API_URL, { method: "POST", mode: "cors", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ action: "getFormConfig" }) });
             globalConfig = await configResp.json();
             localStorage.setItem("cached_global_config", JSON.stringify(globalConfig));
-        }
-
-        function loadConfigFromCache() {
-            const cached = localStorage.getItem("cached_global_config");
-            if (cached) globalConfig = JSON.parse(cached);
         }
 
         function buildUserForm() {
@@ -415,44 +409,105 @@
             } catch(e) { console.log("Помилка завантаження статистики."); }
         }
 
-        let globalCrewAggregations = {};
-
+        // ГОЛОВНА ЛОГІКА ОБЧИСЛЕННЯ: ЕКІПАЖІ, СУВОРІ СТАТУСИ ТА МАТРИЦЯ ЦІЛЕЙ ЗА МІСЯЦЬ ПО ДНЯХ
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
+            const mHead = document.getElementById("matrix-month-head");
+            const mBody = document.getElementById("matrix-month-body");
             
             let activeOperators = globalConfig.operators || ["Екіпаж Сокіл", "Екіпаж Грім"];
+            let activeTargets = globalConfig.targets || ["Танки", "ББМ", "ОВТ"];
             let activeStatuses = ["Знищено", "Уражено"]; 
 
+            // Отримання кількості днів у поточному місяці для побудови шапки
+            const today = new Date();
+            const currentYear = today.getFullYear();
+            const currentMonth = today.getMonth(); // 0 = Січень, 5 = Червень
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+
+            // Побудова заголовку місячної матриці (По верху - дні)
+            let headHtml = `<tr><th class="p-2 border border-zinc-800 bg-zinc-900 text-zinc-300 font-bold text-left min-w-36">Об'єкт ураження</th>`;
+            for (let d = 1; d <= daysInMonth; d++) {
+                headHtml += `<th class="p-1 border border-zinc-800 font-bold w-7 text-center ${d === today.getDate() ? 'bg-amber-950/40 text-amber-400 border-amber-800' : ''}">${d}</th>`;
+            }
+            headHtml += `</tr>`;
+            mHead.innerHTML = headHtml;
+
+            // Ініціалізація структури для таблиці місяця
+            let monthMatrixData = {};
+            activeTargets.forEach(t => {
+                monthMatrixData[t] = {};
+                for (let d = 1; d <= daysInMonth; d++) monthMatrixData[t][d] = 0;
+            });
+
+            // Ініціалізація структури для екіпажів
             let crewStats = {};
             activeOperators.forEach(op => {
                 crewStats[op] = {};
                 activeStatuses.forEach(st => crewStats[op][st] = {});
             });
 
+            // Цикл обробки та агрегації
             allHistoryRows.forEach(row => {
-                let cleanDateStr = String(row.date).split("T")[0];
+                let cleanDateStr = String(row.date).split("T")[0]; // "YYYY-MM-DD"
                 let rowDateTime = new Date(`${cleanDateStr}T${row.time}`);
-                if (filterStartDateTime && rowDateTime < filterStartDateTime) return;
-                if (filterEndDateTime && rowDateTime > filterEndDateTime) return;
-
+                
                 let normOp = activeOperators.find(o => o.toLowerCase() === String(row.operator).trim().toLowerCase());
                 let normStatus = activeStatuses.find(s => s.toLowerCase() === String(row.res).trim().toLowerCase());
+                let normTarget = activeTargets.find(t => t.toLowerCase() === String(row.target).trim().toLowerCase());
 
+                // 1. Агрегація для строгого звіту екіпажів
                 if (normOp && normStatus) {
-                    let target = row.target || "Невідомий об'єкт";
-                    if (!crewStats[normOp][normStatus][target]) crewStats[normOp][normStatus][target] = 0;
-                    crewStats[normOp][normStatus][target]++;
+                    if (filterStartDateTime && rowDateTime < filterStartDateTime) return;
+                    if (filterEndDateTime && rowDateTime > filterEndDateTime) return;
+                    
+                    let targetName = row.target || "Невідомий об'єкт";
+                    if (!crewStats[normOp][normStatus][targetName]) crewStats[normOp][normStatus][targetName] = 0;
+                    crewStats[normOp][normStatus][targetName]++;
+                }
+
+                // 2. Агрегація для місячної матриці (Працює тільки для поточного місяця та статусів Знищено/Уражено)
+                if (normStatus && normTarget && rowDateTime.getFullYear() === currentYear && rowDateTime.getMonth() === currentMonth) {
+                    let dayNum = rowDateTime.getDate();
+                    if (dayNum >= 1 && dayNum <= daysInMonth) {
+                        monthMatrixData[normTarget][dayNum]++;
+                    }
                 }
             });
 
-            globalCrewAggregations = crewStats;
+            // Відмальовка місячної матриці (По верху дні, зліва - цілі)
+            let bodyHtml = "";
+            activeTargets.forEach(target => {
+                let rowCells = "";
+                let hasRowValues = false;
+                
+                for (let d = 1; d <= daysInMonth; d++) {
+                    let count = monthMatrixData[target][d];
+                    if (count > 0) hasRowValues = true;
+                    
+                    rowCells += `
+                        <td class="p-1 border border-zinc-800 text-center font-bold font-mono 
+                            ${count > 0 ? 'bg-green-950/20 text-green-400 font-black' : 'text-zinc-700'} 
+                            ${d === today.getDate() ? 'bg-zinc-900/60' : ''}">
+                            ${count > 0 ? count : '·'}
+                        </td>
+                    `;
+                }
+                bodyHtml += `
+                    <tr class="hover:bg-zinc-900/20">
+                        <td class="p-2 border border-zinc-800 font-bold text-zinc-300 text-left truncate max-w-40" title="${target}">🎯 ${target}</td>
+                        ${rowCells}
+                    </tr>
+                `;
+            });
+            mBody.innerHTML = bodyHtml || "<tr><td class='p-3 text-center text-zinc-600' colspan='35'>Конфігурація цілей порожня.</td></tr>";
 
+            // Відмальовка бойових екіпажів
             cachedTotalsText = "📊 БОЙОВИЙ РАПОРТ УРАЖЕНИХ ЦІЛЕЙ\n";
             cachedTotalsText += filterStartDateTime ? `Період: з ${document.getElementById("filter-start").value.replace('T',' ')} по ${document.getElementById("filter-end").value.replace('T',' ')}\n` : "Період: За весь час\n";
             cachedTotalsText += "--------------------------------------\n";
 
             let htmlBuffer = "";
-
             Object.keys(crewStats).forEach((crew, index) => {
                 let hasCrewData = false;
                 let successCount = 0;
@@ -502,7 +557,6 @@
                     </div>
                 `;
             });
-
             wrapper.innerHTML = htmlBuffer || "<div class='text-center text-zinc-600 py-6 font-sans text-3xs'>Уражених чи знищених засобів за обраний період не виявлено.</div>";
         }
 
@@ -551,7 +605,7 @@
             html2canvas(template, { backgroundColor: "#09090b", scale: 2 }).then(canvas => {
                 template.style.left = "-9999px";
                 const link = document.createElement("a");
-                link.download = `SVAROG_CREWS_REPORT_${new Date().toISOString().slice(0,10)}.png`;
+                link.download = `SVAROG_REPORT_${new Date().toISOString().slice(0,10)}.png`;
                 link.href = canvas.toDataURL("image/png"); link.click();
             });
         }
