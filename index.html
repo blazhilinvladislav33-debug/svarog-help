@@ -78,123 +78,95 @@
         </div>
     </div>
 
-    <div id="admin-box" class="w-full max-w-6xl cmd-panel p-6 rounded-xl shadow-2xl mt-4 hidden">
+    <div id="admin-box" class="w-full max-w-7xl cmd-panel p-6 rounded-xl shadow-2xl mt-4 hidden">
+        
         <div class="flex justify-between items-center mb-6 border-b border-zinc-800 pb-4">
-            <h1 class="text-sm font-black tracking-widest text-zinc-100 uppercase">SYS_COMMAND_HUD [MAIN_ADMIN]</h1>
+            <h1 class="text-sm font-black tracking-widest text-zinc-100 uppercase">SYS_COMMAND_HUD [MAIN_ADMIN_PANEL]</h1>
             <div class="space-x-2">
                 <button onclick="openHistoryModal()" class="bg-zinc-800 border border-zinc-700 hover:bg-purple-900/40 hover:text-purple-400 text-zinc-200 px-4 py-2 rounded text-2xs font-bold uppercase tracking-wider transition">📖 Редактор журналу</button>
                 <button onclick="location.reload()" class="bg-zinc-900 border border-zinc-800 text-zinc-500 hover:text-red-400 px-3 py-2 rounded text-2xs cursor-pointer transition">&times; EXIT</button>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 gap-3 mb-4 font-mono">
-            <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-3.5 shadow-md">
-                <h3 class="text-4xs font-black uppercase text-green-400 mb-1.5 flex items-center gap-1.5">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <div class="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 shadow-md flex flex-col justify-center">
+                <h3 class="text-4xs font-black uppercase text-green-400 mb-1.5 flex items-center gap-1.5 font-mono">
                     <span class="w-2 h-2 bg-green-500 rounded-full animate-ping"></span>
                     📢 [АКТУАЛЬНІ ДИРЕКТИВИ ТА СТАН СИТУАЦІЇ]
                 </h3>
-                <p class="text-3xs text-zinc-400 font-sans leading-relaxed">
-                    Усі бойові екіпажі успішно зведені в єдину мережу обліку КОРД. Дані з планшетів операторів оновлюються в режимі реального часу кожні 10 секунд у фоновому режимі. Натисніть на бойовий екіпаж нижче, щоб розгорнути його детальну статистику збиттів.
+                <p class="text-3xs text-zinc-400 font-mono leading-relaxed">
+                    Усі бойові екіпажі зведені в єдину мережу обліку. Дані з планшетів оновлюються автоматично кожні 10 секунд без переривання роботи операторів. Натисніть на бойовий екіпаж нижче, щоб розгорнути суворий облік знищених та уражених засобів.
                 </p>
             </div>
-        </div>
 
-        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
-            <button onclick="toggleAccordion('acc-filter')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
-                <span>[+] ФОРМУВАННЯ ПЕРІОДИЧНИХ ТА СЕРЕДОВИХ ЗВІТІВ</span>
-                <span id="acc-filter-icon" class="font-mono text-xs">┼</span>
-            </button>
-            <div id="acc-filter" class="accordion-content px-4 text-2xs">
-                <div class="flex flex-wrap gap-4 items-end border-b border-zinc-900 pb-4 mb-4">
+            <div class="bg-zinc-900/30 border border-zinc-850 rounded-xl p-4 flex flex-col justify-between text-2xs">
+                <div class="grid grid-cols-2 gap-3 font-mono">
                     <div>
                         <label class="block text-4xs text-zinc-500 uppercase tracking-wider mb-1">Початок періоду:</label>
-                        <input type="datetime-local" id="filter-start" class="p-2 cmd-input rounded text-xs text-white">
+                        <input type="datetime-local" id="filter-start" class="w-full p-2 cmd-input rounded text-3xs text-white">
                     </div>
                     <div>
                         <label class="block text-4xs text-zinc-500 uppercase tracking-wider mb-1">Кінець періоду:</label>
-                        <input type="datetime-local" id="filter-end" class="p-2 cmd-input rounded text-xs text-white">
-                    </div>
-                    <button onclick="applyCustomFilter()" class="bg-blue-900/80 border border-blue-800 hover:bg-blue-800 text-white px-3 py-2 rounded font-bold text-xs cursor-pointer transition">Застосувати межі</button>
-                    <button onclick="setWednesdayFilter()" class="bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-amber-500 px-3 py-2 rounded font-bold text-xs cursor-pointer transition">📅 Звітний тиждень (Ср 09:00)</button>
-                </div>
-                <div class="flex justify-between items-center flex-wrap gap-2">
-                    <div id="filter-status-text" class="text-green-500 font-mono">Відображається загальний масив даних. Надіслано рапортів містить лише типи 'Знищено' або 'Уражено'.</div>
-                    <div class="space-x-1.5">
-                        <button onclick="generateTextReport()" class="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 px-3 py-1.5 rounded text-xs font-bold cursor-pointer transition">📋 Текстовий рапорт</button>
-                        <button onclick="generateGraphicReport()" class="bg-emerald-900/40 border border-emerald-800 text-emerald-400 hover:bg-emerald-800 hover:text-white px-3 py-1.5 rounded text-xs font-bold cursor-pointer transition">🖼️ Згенерувати інфографіку</button>
+                        <input type="datetime-local" id="filter-end" class="w-full p-2 cmd-input rounded text-3xs text-white">
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
-            <button onclick="toggleAccordion('acc-stats')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
-                <span>[─] СТРОГИЙ ЖУРНАЛ СТАТИСТИКИ ЗБИТТІВ ЗА БОЙОВИМИ ЕКІПАЖАМИ</span>
-                <span id="acc-stats-icon">─</span>
-            </button>
-            <div id="acc-stats" class="accordion-content px-4 open">
-                <div id="stats-crews-wrapper" class="flex flex-col space-y-2 font-mono"></div>
-            </div>
-        </div>
-
-        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
-            <button onclick="toggleAccordion('acc-analytics')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
-                <span>[+] АНАЛІТИЧНІ ЦЕНТРИ: СЕРІЇ БОРТІВ ТА МАТЕРІАЛЬНЕ ЗАБЕЗПЕЧЕННЯ</span>
-                <span id="acc-analytics-icon">┼</span>
-            </button>
-            <div id="acc-analytics" class="accordion-content px-4">
-                <div class="grid grid-cols-1 gap-4">
-                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
-                        <h3 class="text-4xs font-black uppercase tracking-widest text-green-400 mb-2.5 border-b border-zinc-800 pb-1.5">// РОЗУМНИЙ АУДИТ ПАРТІЙ ТА СЕРІЙ БОРТІВ (СТІЙКІСТЬ / ККД)</h3>
-                        <div id="drone-batch-analytics" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2 text-3xs font-mono"></div>
+                <div class="flex justify-between items-center gap-2 mt-3 font-mono">
+                    <div class="space-x-1 flex">
+                        <button onclick="applyCustomFilter()" class="bg-blue-900/80 border border-blue-800 hover:bg-blue-800 text-white px-3 py-1.5 rounded font-bold text-3xs transition">Застосувати межі</button>
+                        <button onclick="setWednesdayFilter()" class="bg-zinc-900 border border-zinc-800 hover:bg-zinc-850 text-amber-500 px-3 py-1.5 rounded font-bold text-3xs transition">📅 Тиждень (Ср 09:00)</button>
                     </div>
-                    <div class="bg-zinc-900/40 p-3 rounded-xl border border-zinc-800">
-                        <h3 class="text-4xs font-black uppercase tracking-widest text-orange-400 mb-2.5 border-b border-zinc-800 pb-1.5">// СУМАРНИЙ РОЗХІД БОЄПРИПАСІВ (ДЛЯ СЛУЖБИ ОЗБРОЄННЯ)</h3>
-                        <div id="ammo-consumption-list" class="grid grid-cols-2 md:grid-cols-4 gap-2 text-3xs font-mono"></div>
+                    <div class="space-x-1 flex">
+                        <button onclick="generateTextReport()" class="bg-zinc-900 border border-zinc-800 text-zinc-300 hover:bg-zinc-800 px-3 py-1.5 rounded text-3xs font-bold transition">📋 Рапорт</button>
+                        <button onclick="generateGraphicReport()" class="bg-emerald-900/40 border border-emerald-800 text-emerald-400 hover:bg-emerald-800 hover:text-white px-3 py-1.5 rounded text-3xs font-bold transition">🖼️ Інфографіка</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-3 shadow-inner">
-            <button onclick="toggleAccordion('acc-constructor')" class="w-full text-left p-3.5 font-bold text-2xs text-zinc-400 uppercase tracking-widest flex justify-between items-center cursor-pointer hover:bg-zinc-900/30 transition rounded-t-xl">
-                <span>[+] УПРАВЛІННЯ ДОВІДНИКАМИ, АКАУНТАМИ ПІДРОЗДІЛІВ ТА ПАРОЛЯМИ</span>
-                <span id="acc-constructor-icon" class="font-mono text-xs">┼</span>
-            </button>
-            <div id="acc-constructor" class="accordion-content px-4 text-2xs">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800 flex flex-col justify-between">
-                        <div>
-                            <h3 class="text-4xs font-bold text-zinc-500 uppercase tracking-wider mb-2">// Конструктор довідників</h3>
-                            <select id="admin-opt-type" class="w-full p-2 mb-2 cmd-input rounded text-3xs text-white">
-                                <option value="operator">📋 Хто вражав (Бойовий Екіпаж)</option>
-                                <option value="target">🎯 Що уражали (Тип цілі)</option>
-                                <option value="weapon">⚔️ Що використовувалось (Засіб)</option>
-                                <option value="status">💥 Результат ураження (Статус)</option>
-                            </select>
-                            <input type="text" id="admin-opt-value" placeholder="Введіть назву..." class="w-full p-2 mb-2 cmd-input rounded text-3xs text-white">
-                        </div>
-                        <button onclick="addDynamicOption()" class="w-full bg-purple-900 hover:bg-purple-800 text-white p-2 rounded text-3xs font-bold cursor-pointer transition">Додати пункт у базу</button>
-                    </div>
-                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800">
-                        <h3 class="text-4xs font-bold text-green-500 uppercase tracking-wider mb-2">// Cherha підтвердження підрозділів</h3>
-                        <div class="overflow-y-auto max-h-40"><table class="w-full text-left text-3xs text-zinc-400"><tbody id="users-table-body"></tbody></table></div>
-                    </div>
-                    <div class="bg-zinc-900/50 p-3 rounded-lg border border-zinc-800 flex flex-col justify-between">
-                        <div class="overflow-y-auto max-h-32">
-                            <h3 class="text-4xs font-bold text-red-500 uppercase tracking-wider mb-2">// Адміністрування паролів</h3>
-                            <table class="w-full text-left text-3xs text-zinc-400"><tbody id="admins-table-body"></tbody></table>
-                        </div>
-                        <button onclick="exportToExcel()" class="w-full bg-emerald-850 hover:bg-emerald-700 text-white p-2 rounded font-bold text-center text-3xs transition mt-2">Експорт Excel (.xlsx)</button>
-                    </div>
+        <div class="border border-zinc-800 rounded-xl bg-zinc-950/50 mb-4 shadow-inner p-4">
+            <div class="border-b border-zinc-800 pb-2 mb-3 flex justify-between items-center font-mono">
+                <span class="text-2xs font-black text-zinc-400 uppercase tracking-widest">[─] СТРОГИЙ ЖУРНАЛ СТАТИСТИКИ ЗБИТТІВ ЗА БОЙОВИМИ ЕКІПАЖАМИ</span>
+                <span id="filter-status-text" class="text-green-500 text-3xs">Повний масив даних</span>
+            </div>
+            <div id="stats-crews-wrapper" class="flex flex-col space-y-2 font-mono"></div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 font-mono">
+            <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-4xs font-bold text-zinc-500 uppercase tracking-wider mb-2.5 border-b border-zinc-800 pb-1">// Конструктор форм рапорту</h3>
+                    <select id="admin-opt-type" class="w-full p-2 mb-2 cmd-input rounded text-3xs text-white">
+                        <option value="operator">📋 Хто вражав (Бойовий Екіпаж)</option>
+                        <option value="target">🎯 Що уражали (Тип цілі)</option>
+                        <option value="weapon">⚔️ Що використовувалось (Засіб)</option>
+                        <option value="status">💥 Результат ураження (Статус)</option>
+                    </select>
+                    <input type="text" id="admin-opt-value" placeholder="Введіть назву..." class="w-full p-2 mb-2 cmd-input rounded text-3xs text-white">
+                </div>
+                <button onclick="addDynamicOption()" class="w-full bg-purple-900 hover:bg-purple-800 text-white p-2 rounded text-3xs font-bold transition">Додати пункт у базу</button>
+            </div>
+
+            <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-4xs font-bold text-green-500 uppercase tracking-wider mb-2.5 border-b border-zinc-800 pb-1">// Черга підтвердження підрозділів</h3>
+                    <div class="overflow-y-auto max-h-36 pr-1"><table class="w-full text-left text-3xs text-zinc-400"><tbody id="users-table-body"></tbody></table></div>
                 </div>
             </div>
+
+            <div class="bg-zinc-900/50 p-4 rounded-xl border border-zinc-800 flex flex-col justify-between">
+                <div>
+                    <h3 class="text-4xs font-bold text-red-500 uppercase tracking-wider mb-2.5 border-b border-zinc-800 pb-1">// Адміністрування паролів</h3>
+                    <div class="overflow-y-auto max-h-36 pr-1"><table class="w-full text-left text-3xs text-zinc-400"><tbody id="admins-table-body"></tbody></table></div>
+                </div>
+                <button onclick="exportToExcel()" class="w-full bg-emerald-850 hover:bg-emerald-700 text-white p-2 rounded font-bold text-center text-3xs transition mt-2">Експорт Excel (.xlsx)</button>
+            </div>
         </div>
+
     </div>
 
     <div id="graphic-report-template" class="fixed -left-9999 top-0 w-[450px] bg-zinc-950 p-6 font-mono text-white flex flex-col border-4 border-zinc-800 shadow-2xl">
         <div class="text-center border-b-2 border-zinc-800 pb-3 mb-4">
-            <h2 class="text-sm font-black tracking-widest text-red-500 uppercase">⚡ SVAROG TEAM // ІНФОГРАФІКА УРАЖЕНХ ЗАСОБІВ</h2>
+            <h2 class="text-sm font-black tracking-widest text-red-500 uppercase">⚡ SVAROG TEAM // ІНФОГРАФІКА УРАЖЕНИХ ЗАСОБІВ</h2>
             <p id="graph-report-date" class="text-4xs text-zinc-500 mt-1">ПЕРІОД ЗВІТНОСТІ</p>
         </div>
         <div id="graphic-report-content" class="space-y-4 text-2xs"></div>
@@ -261,6 +233,7 @@
             loadRebDirectiveLocal();
         }
 
+        // ФОНОВЕ АВТООНОВЛЕННЯ КОЖНІ 10 СЕКУНД (ПОВНІСТЮ ОЧИЩЕНЕ ВІД ЗАЙВИХ АНАЛІТИК)
         function startTacticalAutoRefresh() {
             setInterval(async () => {
                 if (currentUserLog === "") return;
@@ -276,8 +249,6 @@
                         
                         renderFilteredStatistics();
                         loadUsersList();
-                    } else {
-                        calculateUserShiftEfficiency();
                     }
                 } catch (e) { console.log("Фоновий канал зв'язку очікує пакетів..."); }
             }, 10000);
@@ -447,6 +418,7 @@
 
         let globalCrewAggregations = {};
 
+        // ОПТИМІЗОВАНИЙ СУВОРОВИЙ РЕНДЕР: ВКЛЮЧАЄ ВИКЛЮЧНО ТИПИ ЗНИЩЕНО ТА УРАЖЕНО ДЛЯ ЕКІПАЖІВ
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             
@@ -502,7 +474,7 @@
                             let icon = status === "Знищено" ? "💥" : "⚡";
                             subRowsHtml += `
                                 <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900">
-                                    <span class="text-zinc-400 text-3xs flex items-center gap-1.5 truncate"><span>${icon}</span> ${status} (${target}):</span>
+                                    <span class="text-zinc-400 text-3xs flex items-center gap-1.5 truncate font-mono"><span>${icon}</span> ${status} (${target}):</span>
                                     <span class="font-black text-white text-2xs font-mono">${count}</span>
                                 </div>
                             `;
@@ -520,12 +492,12 @@
                         <div onclick="toggleCrewStatisticsAccordion('${crewContentId}')" class="crew-trigger p-3 flex justify-between items-center cursor-pointer select-none bg-zinc-900/80 border-b border-zinc-850">
                             <div class="flex items-center space-x-2.5">
                                 <span class="text-xs font-bold text-zinc-100 uppercase tracking-wider">⚔️ ${crew}</span>
-                                <span class="text-4xs px-1.5 py-0.5 bg-green- green-950/40 text-green-400 rounded border border-green-900/30 font-sans font-bold">Разом уражено: ${successCount}</span>
+                                <span class="text-4xs px-1.5 py-0.5 bg-green-950/40 text-green-400 rounded border border-green-900/30 font-sans font-bold">Разом уражено: ${successCount}</span>
                             </div>
                             <span id="${crewContentId}-icon" class="text-zinc-500 font-bold font-mono text-xs">${iconIndicator}</span>
                         </div>
                         <div id="${crewContentId}" class="accordion-content px-4 bg-zinc-950/20 ${isOpenClass}">
-                            <div class="grid grid-cols-2 gap-2 mt-1">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
                                 ${subRowsHtml}
                             </div>
                         </div>
@@ -536,7 +508,6 @@
             wrapper.innerHTML = htmlBuffer || "<div class='text-center text-zinc-600 py-6 font-sans text-3xs'>Уражених чи знищених засобів за обраний період не виявлено.</div>";
         }
 
-        // ПОВНІСТЮ ВИПРАВЛЕНО ШАБЛОННІ РЯДКИ ТА ЗВОРՈТНІ ЛАПКИ ГЕНЕРАТОРА ІНФОГРАФІКИ
         function generateGraphicReport() {
             const template = document.getElementById("graphic-report-template");
             const contentBox = document.getElementById("graph-report-content");
@@ -619,7 +590,7 @@
                         </tr>
                     `;
                 });
-            } catch(e) { tbody.innerHTML = "<tr><td class='p-4 text-center text-red-500' colspan='8'>Помилка.</td></tr>"; }
+            } catch(e) { tbody.innerHTML = "<tr><td class='p-4 text-center text-red-500' colspan='8'>Помилка завантаження.</td></tr>"; }
         }
 
         async function saveRowChange(id) {
@@ -653,7 +624,7 @@
                             <tr class="border-b border-zinc-800">
                                 <td class="p-1 text-zinc-300 font-bold">@${user.username}</td>
                                 <td class="p-1 text-right">
-                                    <button onclick="changePassAdminPrompt('${user.id}')" class="bg-amber-600 text-white px-2 py-0.5 rounded text-4xs transition">Зміна Пароля</button>
+                                    <button onclick="changePassAdminPrompt('${user.id}')" class="bg-amber-600 text-white px-2 py-0.5 rounded text-4xs transition">Ключ</button>
                                 </td>
                             </tr>
                         `;
@@ -663,19 +634,19 @@
                                 <td class="p-1.5 text-zinc-300 font-medium">${user.username} [${user.status}]</td>
                                 <td class="p-1.5 text-right space-x-1 flex justify-end">
                                     ${user.status === "pending" ? `<button onclick="manageUser('${user.id}', 'approve')" class="bg-green-600 text-white px-2 py-0.5 rounded text-4xs font-bold transition">✔ Допуск</button>` : ''}
-                                    <button onclick="changePassAdminPrompt('${user.id}')" class="bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded text-4xs border border-zinc-700 transition">Ключ</button>
+                                    <button onclick="changePassAdminPrompt('${user.id}')" class="bg-zinc-800 text-zinc-400 px-1.5 py-0.5 rounded text-4xs border border-zinc-700 transition">Пароль</button>
                                     <button onclick="manageUser('${user.id}', 'delete')" class="bg-red-600 text-white px-1.5 py-0.5 rounded text-4xs transition">&times;</button>
                                 </td>
                             </tr>
                         `;
                     }
                 });
-                if(tbody.innerHTML === "") tbody.innerHTML = "<tr><td class='p-2 text-zinc-600 text-center'>Немає заявок</td></tr>";
+                if(tbody.innerHTML === "") tbody.innerHTML = "<tr><td class='p-2 text-zinc-600 text-center'>Немає заявок допуску</td></tr>";
             } catch(e) {}
         }
 
         function changePassAdminPrompt(userId) {
-            const newPass = prompt("Введіть новий секретний пароль:");
+            const newPass = prompt("Введіть новий секретний пароль підрозділу:");
             if (newPass && newPass.trim() !== "") {
                 fetch(API_URL, { method: "POST", mode: "no-cors", body: JSON.stringify({ action: "manageUser", subAction: "changePass", userId: userId, newPassword: newPass.trim(), adminName: currentUserLog }) }).then(() => alert("Пароль успішно змінено!"));
             }
