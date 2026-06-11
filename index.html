@@ -571,6 +571,7 @@
 
         let globalCrewAggregations = {};
 
+        // РЕАЛІЗОВАНО: Деталізована статистика з розподілом за типом уражених/знищених об'єктів
         function renderFilteredStatistics() {
             const wrapper = document.getElementById("stats-crews-wrapper");
             
@@ -580,7 +581,7 @@
             let crewStats = {};
             activeCrews.forEach(cr => {
                 crewStats[cr] = {};
-                activeStatuses.forEach(st => crewStats[cr][st] = 0);
+                activeStatuses.forEach(st => crewStats[cr][st] = {}); // Кожен статус тепер містить вкладений об'єкт цілей
             });
 
             let ammoCounts = { "Кумулятивний (КЗ-6)": 0, "Осколково-фугасний (ОФСП)": 0, "Термобаричний (ТБГ)": 0, "Особливий збір / Інше": 0 };
@@ -611,9 +612,15 @@
                 if (normStatus) {
                     if (!crewStats[normCrew]) {
                         crewStats[normCrew] = {};
-                        activeStatuses.forEach(st => crewStats[normCrew][st] = 0);
                     }
-                    crewStats[normCrew][normStatus] += 1;
+                    if (!crewStats[normCrew][normStatus]) {
+                        crewStats[normCrew][normStatus] = {};
+                    }
+                    let targetObj = row.obj || "Невідома ціль";
+                    if (!crewStats[normCrew][normStatus][targetObj]) {
+                        crewStats[normCrew][normStatus][targetObj] = 0;
+                    }
+                    crewStats[normCrew][normStatus][targetObj]++;
                 }
             });
 
@@ -626,31 +633,47 @@
             let htmlBuffer = "";
 
             Object.keys(crewStats).forEach((crew, index) => {
-                let hasCrewData = Object.values(crewStats[crew]).some(val => val > 0);
+                let hasCrewData = false;
+                Object.keys(crewStats[crew]).forEach(status => {
+                    if (Object.keys(crewStats[crew][status]).length > 0) {
+                        hasCrewData = true;
+                    }
+                });
                 if (!hasCrewData) return; 
 
-                let successCount = (crewStats[crew]["Знищено"] || 0) + (crewStats[crew]["Уражено"] || 0);
+                // Рахуємо сумарний ККД для шапки
+                let successCount = 0;
+                if (crewStats[crew]["Знищено"]) {
+                    Object.values(crewStats[crew]["Знищено"]).forEach(v => successCount += v);
+                }
+                if (crewStats[crew]["Уражено"]) {
+                    Object.values(crewStats[crew]["Уражено"]).forEach(v => successCount += v);
+                }
+
                 cachedTotalsText += `⚔️ Екіпаж: "${crew}"\n`;
 
                 let statusRowsHtml = "";
                 Object.keys(crewStats[crew]).forEach(status => {
-                    let totalVal = crewStats[crew][status];
-                    if(totalVal > 0) {
-                        cachedTotalsText += `  🔹 ${status}: ${totalVal} шт.\n`;
-                    }
-                    
-                    let icon = "🎯";
-                    if (status.toLowerCase().includes("знищено")) icon = "💥";
-                    if (status.toLowerCase().includes("уражено")) icon = "⚡";
-                    if (status.toLowerCase().includes("падіння")) icon = "📉";
-                    if (status.toLowerCase().includes("втрата")) icon = "❌";
+                    Object.keys(crewStats[crew][status]).forEach(target => {
+                        let totalVal = crewStats[crew][status][target];
+                        if(totalVal > 0) {
+                            // Формування звіту для соцмереж: статус + тип техніки + кількість
+                            cachedTotalsText += `  🔹 ${status} (${target}): ${totalVal} шт.\n`;
+                            
+                            let icon = "🎯";
+                            if (status.toLowerCase().includes("знищено")) icon = "💥";
+                            if (status.toLowerCase().includes("уражено")) icon = "⚡";
+                            if (status.toLowerCase().includes("падіння")) icon = "📉";
+                            if (status.toLowerCase().includes("втрата")) icon = "❌";
 
-                    statusRowsHtml += `
-                        <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900/60">
-                            <span class="text-zinc-400 text-3xs flex items-center gap-1.5"><span>${icon}</span> ${status}:</span>
-                            <span class="font-black text-white text-2xs font-mono">${totalVal}</span>
-                        </div>
-                    `;
+                            statusRowsHtml += `
+                                <div class="flex justify-between items-center bg-zinc-950 p-2 rounded border border-zinc-900/60">
+                                    <span class="text-zinc-400 text-3xs flex items-center gap-1.5 truncate" title="${status} (${target})"><span>${icon}</span> ${status} (${target}):</span>
+                                    <span class="font-black text-white text-2xs font-mono">${totalVal}</span>
+                                </div>
+                            `;
+                        }
+                    });
                 });
                 cachedTotalsText += "\n";
 
@@ -700,7 +723,7 @@
             `).join('');
         }
 
-        // ВИПРАВЛЕНО: СИНТАКСИС ТА ВЕРСТКУ ШАБЛОНІВ ДЛЯ ДИНАМІЧНОЇ ГЕНЕРАЦІЇ КАРТИНКИ
+        // ВИПРАВЛЕНО: Генератор графічного звіту-інфографіки тепер повноцінно розбиває дані за статусом, ціллю та кількістю
         function generateGraphicReport() {
             const template = document.getElementById("graphic-report-template");
             const contentBox = document.getElementById("graph-report-content");
@@ -714,22 +737,29 @@
             let hasGlobalData = false;
 
             Object.keys(globalCrewAggregations).forEach(crew => {
-                let hasCrewData = Object.values(globalCrewAggregations[crew]).some(val => val > 0);
+                let hasCrewData = false;
+                Object.keys(globalCrewAggregations[crew]).forEach(status => {
+                    if (Object.keys(globalCrewAggregations[crew][status]).length > 0) {
+                        hasCrewData = true;
+                    }
+                });
                 if (!hasCrewData) return;
 
                 hasGlobalData = true;
                 let rowsHtml = "";
 
                 Object.keys(globalCrewAggregations[crew]).forEach(status => {
-                    let totalVal = globalCrewAggregations[crew][status];
-                    if (totalVal > 0) {
-                        rowsHtml += `
-                            <div class="flex justify-between border-b border-zinc-900/40 py-1 text-3xs">
-                                <span class="text-zinc-400 uppercase font-medium">  • ${status}</span>
-                                <span class="text-green-400 font-black font-mono">${totalVal} ШТ.</span>
-                            </div>
-                        `;
-                    }
+                    Object.keys(globalCrewAggregations[crew][status]).forEach(target => {
+                        let totalVal = globalCrewAggregations[crew][status][target];
+                        if (totalVal > 0) {
+                            rowsHtml += `
+                                <div class="flex justify-between border-b border-zinc-900/40 py-1 text-3xs">
+                                    <span class="text-zinc-400 uppercase font-medium">  • ${status} (${target})</span>
+                                    <span class="text-green-400 font-black font-mono">${totalVal} ШТ.</span>
+                                </div>
+                            `;
+                        }
+                    });
                 });
 
                 contentBox.innerHTML += `
